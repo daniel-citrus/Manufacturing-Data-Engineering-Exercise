@@ -5,6 +5,8 @@ from pathlib import Path
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
 
+from datasets import DATASETS, clean_dataset, fetch_raw
+
 RUN_LEVEL_CSV = (
     Path(__file__).resolve().parent.parent
     / "analysis"
@@ -51,3 +53,21 @@ def get_run(run_id: str) -> Run:
         if run.run_id == run_id:
             return run
     raise HTTPException(status_code=404, detail=f"Run {run_id} not found")
+
+
+def check_dataset(dataset: str) -> None:
+    if dataset not in DATASETS:
+        raise HTTPException(status_code=404, detail=f"Dataset {dataset} not found")
+
+
+# Plain dicts, not models, so values keep the types the exercise API sent ("1180" stays text).
+@app.get("/api/raw/{dataset}")
+def get_raw(dataset: str) -> list[dict]:
+    check_dataset(dataset)
+    return fetch_raw(dataset)
+
+
+@app.get("/api/cleaned/{dataset}")
+def get_cleaned(dataset: str) -> list[dict]:
+    check_dataset(dataset)
+    return clean_dataset(dataset, fetch_raw(dataset))
