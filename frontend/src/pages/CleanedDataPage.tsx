@@ -1,36 +1,8 @@
-import { useEffect, useRef, useState } from 'react'
-import {
-  DATASETS,
-  DatasetSection,
-  fetchDataset,
-  type Loaded,
-} from '../components/DataTable'
+import { DatasetSection } from '../components/DataTable'
+import { DATASETS, useDatasets } from '../data/datasets'
 
 function CleanedDataPage() {
-  const [states, setStates] = useState<Loaded[] | null>(null)
-  const [busy, setBusy] = useState(false)
-  const mounted = useRef(true)
-
-  useEffect(() => {
-    mounted.current = true
-    return () => {
-      mounted.current = false
-    }
-  }, [])
-
-  async function clean() {
-    setBusy(true)
-    setStates(DATASETS.map(() => ({ status: 'loading' })))
-    await Promise.all(
-      DATASETS.map(async (dataset, i) => {
-        const state = await fetchDataset('cleaned', dataset.name)
-        if (mounted.current) {
-          setStates((prev) => prev && prev.map((s, j) => (j === i ? state : s)))
-        }
-      }),
-    )
-    if (mounted.current) setBusy(false)
-  }
+  const { states, busy, load } = useDatasets('cleaned')
 
   return (
     <main>
@@ -44,7 +16,7 @@ function CleanedDataPage() {
         <li>Counts written as numeric text become integers.</li>
       </ul>
       <p className="data-actions">
-        <button type="button" onClick={clean} disabled={busy}>
+        <button type="button" onClick={load} disabled={busy}>
           Clean data
         </button>
       </p>

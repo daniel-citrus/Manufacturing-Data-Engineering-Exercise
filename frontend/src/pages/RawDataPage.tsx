@@ -1,27 +1,8 @@
-import { useEffect, useState } from 'react'
-import {
-  DATASETS,
-  DatasetSection,
-  fetchDataset,
-  type Loaded,
-} from '../components/DataTable'
+import { DatasetSection } from '../components/DataTable'
+import { DATASETS, useDatasets } from '../data/datasets'
 
 function RawDataPage() {
-  const [states, setStates] = useState<Loaded[]>(
-    DATASETS.map(() => ({ status: 'loading' })),
-  )
-
-  useEffect(() => {
-    let active = true
-    DATASETS.forEach((dataset, i) => {
-      fetchDataset('raw', dataset.name).then((state) => {
-        if (active) setStates((prev) => prev.map((s, j) => (j === i ? state : s)))
-      })
-    })
-    return () => {
-      active = false
-    }
-  }, [])
+  const { states, busy, load } = useDatasets('raw')
 
   return (
     <main>
@@ -31,9 +12,19 @@ function RawDataPage() {
         Quotes mean text, <code>null</code> means the API sent an empty value,
         and a blank cell means the record has no such field.
       </p>
-      {DATASETS.map((dataset, i) => (
-        <DatasetSection key={dataset.name} dataset={dataset} state={states[i]} />
-      ))}
+      <p className="data-actions">
+        <button type="button" onClick={load} disabled={busy}>
+          Pull raw data
+        </button>
+      </p>
+      {states &&
+        DATASETS.map((dataset, i) => (
+          <DatasetSection
+            key={dataset.name}
+            dataset={dataset}
+            state={states[i]}
+          />
+        ))}
     </main>
   )
 }

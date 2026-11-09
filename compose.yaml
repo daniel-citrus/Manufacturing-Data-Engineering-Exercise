@@ -11,4 +11,5 @@ services:
     depends_on:
       - backend
     ports:
-      - "8080:80"
+      # PORT=9000 docker compose up --build serves the app on 9000 instead.
+      - "${PORT:-8080}:80"
