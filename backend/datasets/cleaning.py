@@ -1,46 +1,6 @@
-import json
-import urllib.error
-import urllib.request
-from datetime import datetime, timezone
-
 from fastapi import HTTPException
 
-EXERCISE_API = "https://exercise.convanalytics.com/api/"
-TIMEOUT_SECONDS = 30
-USER_AGENT = "manufacturing-data-exercise/1.0"
-DATASETS = ("production_runs", "counter_readings", "downtime_events")
-CASES_PER_HOUR = {"cases/hour": 1, "cases/minute": 60}
-
-
-class CleaningError(ValueError):
-    """Data the cleaning refuses to guess about; names the record id and field."""
-
-
-def fetch_raw(dataset: str) -> list[dict]:
-    """Fetch a dataset from the exercise API, records exactly as sent."""
-    try:
-        # The API returns 403 to urllib's default User-Agent, so identify this app.
-        request = urllib.request.Request(EXERCISE_API + dataset, headers={"User-Agent": USER_AGENT})
-        with urllib.request.urlopen(request, timeout=TIMEOUT_SECONDS) as response:
-            data = json.load(response)
-        # The API wraps the records in an extra list: [[{...}, {...}]]
-        return [record for page in data for record in page]
-    except (OSError, ValueError, TypeError) as error:
-        # OSError covers unreachable, timeout and non-2xx (HTTPError); ValueError is invalid JSON.
-        raise HTTPException(502, f"Could not load {dataset} from the exercise API: {error}")
-
-
-def to_utc(timestamp: str | None, record_id: str, field: str) -> str | None:
-    # Convert an ISO timestamp to UTC written with Z; null stays null.
-    if timestamp is None:
-        return None
-    try:
-        parsed = datetime.fromisoformat(timestamp)
-    except (ValueError, TypeError):
-        raise CleaningError(f"{record_id} {field}: invalid timestamp {timestamp!r}")
-    if parsed.tzinfo is None:
-        raise CleaningError(f"{record_id} {field}: timestamp has no time zone: {timestamp!r}")
-    return parsed.astimezone(timezone.utc).isoformat().replace("+00:00", "Z")
+from .assumptions import CleaningError, to_cases_per_hour, to_utc
 
 
 def clean_production_runs(runs: list[dict]) -> list[dict]:
@@ -48,8 +8,7 @@ def clean_production_runs(runs: list[dict]) -> list[dict]:
     for run in runs:
         run_id = run["run_id"]
         unit = run["target_rate_unit"]
-        if unit not in CASES_PER_HOUR:
-            raise CleaningError(f"{run_id} target_rate_unit: unknown unit {unit!r}")
+        target_hourly_rate = to_cases_per_hour(run["target_rate"], unit, run_id)
         record = {
             key: value
             for key, value in run.items()
@@ -58,7 +17,7 @@ def clean_production_runs(runs: list[dict]) -> list[dict]:
         record["start_time"] = to_utc(run["start_time"], run_id, "start_time")
         record["end_time"] = to_utc(run["end_time"], run_id, "end_time")
         record["product_code"] = run["product_code"].strip().upper()
-        record["target_hourly_rate"] = run["target_rate"] * CASES_PER_HOUR[unit]
+        record["target_hourly_rate"] = target_hourly_rate
         record["unit"] = unit.split("/")[0]
         cleaned.append(record)
     return cleaned
