@@ -1,0 +1,7 @@
+.venv/
+.ipynb_checkpoints/
+__pycache__/
+.jupyter/
+.jupyter_ystore.db
+.DS_Store
+data/cleaned/

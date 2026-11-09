@@ -1,0 +1,6 @@
+run_id,equipment_id,product_code,run_start,run_end,target_rate_cases_per_hour,cases_produced,elapsed_minutes,downtime_minutes,operating_minutes,operating_throughput_cph,target_attainment_percent,data_quality_notes
+R100,PKG-01,FLOUR-A,2026-08-13T13:00:00Z,2026-08-13T14:00:00Z,600,420,60.0,6.0,54.0,466.67,77.78,"counted from C002 at 13:10, 10 min after the start; readings not used: C004 (duplicate), C005 (count isn't a number)"
+R101,PKG-01,FLOUR-A,2026-08-13T14:10:00Z,2026-08-13T15:10:00Z,600,250,60.0,9.5,50.5,297.03,49.5,"counted to C009 at 14:40, 30 min before the end; readings not used: C010 (glitch: count dropped), C011 (glitch: count dropped); D002 starts before R101: only the overlap counts; D004 shares time with an earlier stop: counted once"
+R102,PKG-02,FLOUR-B,2026-08-13T13:15:00Z,2026-08-13T14:15:00Z,420,280,60.0,5.0,55.0,305.45,72.73,"counted from C015 at 13:30, 15 min after the start"
+R103,PKG-02,FLOUR-B,2026-08-13T14:30:00Z,2026-08-13T15:30:00Z,420,290,60.0,3.58,56.42,308.42,73.43,readings not used: C022 (glitch: count dropped)
+R104,PKG-01,FLOUR-C,2026-08-13T15:20:00Z,,540,,,,,,,"no end time, so no metrics (C012, C013, D010 belong to this run)"
