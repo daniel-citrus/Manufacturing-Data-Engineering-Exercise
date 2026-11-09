@@ -7,6 +7,7 @@ from fastapi import HTTPException
 
 EXERCISE_API = "https://exercise.convanalytics.com/api/"
 TIMEOUT_SECONDS = 30
+USER_AGENT = "manufacturing-data-exercise/1.0"
 DATASETS = ("production_runs", "counter_readings", "downtime_events")
 CASES_PER_HOUR = {"cases/hour": 1, "cases/minute": 60}
 
@@ -18,7 +19,9 @@ class CleaningError(ValueError):
 def fetch_raw(dataset: str) -> list[dict]:
     """Fetch a dataset from the exercise API, records exactly as sent."""
     try:
-        with urllib.request.urlopen(EXERCISE_API + dataset, timeout=TIMEOUT_SECONDS) as response:
+        # The API returns 403 to urllib's default User-Agent, so identify this app.
+        request = urllib.request.Request(EXERCISE_API + dataset, headers={"User-Agent": USER_AGENT})
+        with urllib.request.urlopen(request, timeout=TIMEOUT_SECONDS) as response:
             data = json.load(response)
         # The API wraps the records in an extra list: [[{...}, {...}]]
         return [record for page in data for record in page]
