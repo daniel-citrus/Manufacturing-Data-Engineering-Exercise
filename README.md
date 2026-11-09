@@ -48,5 +48,7 @@ Open the address Vite prints (usually http://localhost:5173). It forwards `/api`
 |---|---|
 | `GET /api/runs` | Every run, with its metrics and data-quality notes |
 | `GET /api/runs/{run_id}` | One run, or 404 |
+| `GET /api/raw/{dataset}` | `production_runs`, `counter_readings` or `downtime_events` exactly as the exercise API sends it. Needs internet access. 404 for an unknown dataset, 502 if the exercise API fails |
+| `GET /api/cleaned/{dataset}` | The same dataset after notebook 02's cleaning. Needs internet access. 404 for an unknown dataset, 502 if the exercise API fails or the data can't be cleaned |
 
 Runs without an end time (R104) have `null` metrics.
