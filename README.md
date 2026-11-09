@@ -1,40 +1,46 @@
 # Manufacturing Data Engineering Exercise
 
-Throughput analysis of packaging-line production runs, plus a small web app that shows the results.
+Throughput analysis of packaging-line production runs, with a small web app that pulls the data, cleans it, and charts the results.
 
-| Folder | What's in it |
-|---|---|
-| [`analysis/`](analysis/) | Jupyter notebooks that pull, clean, and analyze the data. The result, assumptions, and data-quality findings are in [`analysis/README.md`](analysis/README.md). |
-| [`backend/`](backend/) | FastAPI app that serves the run-level dataset (`analysis/data/processed/run_level_dataset.csv`) |
-| [`frontend/`](frontend/) | Vite + React app with a sidebar and three pages: the raw datasets, the cleaned datasets (loaded on a "Clean data" click), and the run results table that marks the lowest-performing run |
+## Run it locally
 
-## Run with Docker
+```sh
+git clone https://github.com/daniel-citrus/Manufacturing-Data-Engineering-Exercise.git
+cd Manufacturing-Data-Engineering-Exercise
+```
+
+**With Docker** (any OS, needs Docker with Compose):
 
 ```sh
 docker compose up --build
 ```
 
-Then open http://localhost:8080. The API is under the same address, for example http://localhost:8080/api/runs.
+Open http://localhost:8080. If port 8080 is taken, run `PORT=9000 docker compose up --build` and open http://localhost:9000.
 
-The backend reads the CSV from a read-only mount of `analysis/data/processed/`, so rerunning the notebooks updates the app without a rebuild.
-
-## Run for development
-
-Needs Python 3.11 or newer and Node 20.19 or newer.
-
-**Backend** (from the repo root):
+**Without Docker** (macOS or Linux, needs Python 3.11+ and Node 20.19+):
 
 ```sh
-python3 -m venv .venv
-source .venv/bin/activate
-pip install -r backend/requirements.txt
-cd backend
-uvicorn main:app --reload
+./dev.sh
 ```
 
-It serves the API on http://localhost:8000, with interactive docs at http://localhost:8000/docs.
+Open the address it prints, usually http://127.0.0.1:5173. The first run installs everything. If port 8000 is taken, run `API_PORT=8001 ./dev.sh`.
 
-**Frontend** (in a second terminal):
+Ctrl+C stops either one.
+
+<details>
+<summary>Windows without Docker</summary>
+
+In one terminal, from the repo root:
+
+```sh
+py -m venv .venv
+.venv\Scripts\activate
+pip install -r backend\requirements.txt
+cd backend
+uvicorn main:app
+```
+
+In a second terminal:
 
 ```sh
 cd frontend
@@ -42,13 +48,24 @@ npm install
 npm run dev
 ```
 
-Open the address Vite prints (usually http://localhost:5173). It forwards `/api` requests to the backend on port 8000.
+Open the address Vite prints.
 
-| Endpoint | Returns |
+</details>
+
+## Using the app
+
+The app needs internet access to reach the exercise API.
+
+1. **Raw data:** click **Pull raw data** to see the three datasets as the API sends them.
+2. **Cleaned data:** click **Clean data** to see them after cleaning.
+3. **Dashboard:** see which run each counter reading and downtime event belongs to, each run's metrics, the lowest-performing run, and the assumptions behind them.
+
+Reloading the browser clears the loaded data.
+
+## What's where
+
+| Folder | Contents |
 |---|---|
-| `GET /api/runs` | Every run, with its metrics and data-quality notes |
-| `GET /api/runs/{run_id}` | One run, or 404 |
-| `GET /api/raw/{dataset}` | `production_runs`, `counter_readings` or `downtime_events` exactly as the exercise API sends it. Needs internet access. 404 for an unknown dataset, 502 if the exercise API fails |
-| `GET /api/cleaned/{dataset}` | The same dataset after notebook 02's cleaning. Needs internet access. 404 for an unknown dataset, 502 if the exercise API fails or the data can't be cleaned |
-
-Runs without an end time (R104) have `null` metrics.
+| [`analysis/`](analysis/) | Jupyter notebooks with the full analysis. Results, assumptions, and how to rerun them are in [`analysis/README.md`](analysis/README.md). |
+| [`backend/`](backend/) | FastAPI app that fetches and cleans the datasets. With `./dev.sh`, its API docs are at http://127.0.0.1:8000/docs. |
+| [`frontend/`](frontend/) | Vite + React app |
