@@ -6,7 +6,7 @@ Throughput analysis of packaging-line production runs, plus a small web app that
 |---|---|
 | [`analysis/`](analysis/) | Jupyter notebooks that pull, clean, and analyze the data. The result, assumptions, and data-quality findings are in [`analysis/README.md`](analysis/README.md). |
 | [`backend/`](backend/) | FastAPI app that serves the run-level dataset (`analysis/data/processed/run_level_dataset.csv`) |
-| [`frontend/`](frontend/) | Vite + React app that shows the runs in a table and marks the lowest-performing one |
+| [`frontend/`](frontend/) | Vite + React app with a sidebar and three pages: the raw datasets, the cleaned datasets (loaded on a "Clean data" click), and the run results table that marks the lowest-performing run |
 
 ## Run with Docker
 
