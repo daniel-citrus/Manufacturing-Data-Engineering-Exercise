@@ -116,13 +116,6 @@ tbody th {
   font-variant-numeric: tabular-nums;
 }
 
-.notes {
-  min-width: 240px;
-  white-space: normal;
-  color: var(--text-muted);
-  font-size: 13px;
-}
-
 tr.lowest > * {
   background: var(--accent-bg);
 }
@@ -137,8 +130,4 @@ tr.lowest > * {
   letter-spacing: 0.4px;
   color: var(--accent);
   border: 1px solid currentColor;
-}
-
-.summary {
-  margin-top: 16px;
 }

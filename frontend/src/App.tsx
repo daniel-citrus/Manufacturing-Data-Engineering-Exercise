@@ -1,14 +1,19 @@
 import { useEffect, useState, type MouseEvent } from 'react'
 import './App.css'
 import CleanedDataPage from './pages/CleanedDataPage'
+import DashboardPage from './pages/DashboardPage'
 import RawDataPage from './pages/RawDataPage'
-import RunsPage from './pages/RunsPage'
 
 const pages = [
   { path: '/raw', label: 'Raw data', Page: RawDataPage },
   { path: '/cleaned', label: 'Cleaned data', Page: CleanedDataPage },
-  { path: '/', label: 'Run results', Page: RunsPage },
+  { path: '/dashboard', label: 'Dashboard', Page: DashboardPage },
 ]
+
+// Nothing lives at "/", so the app opens on the first page.
+if (window.location.pathname === '/') {
+  window.history.replaceState(null, '', pages[0].path)
+}
 
 function App() {
   const [path, setPath] = useState(window.location.pathname)
