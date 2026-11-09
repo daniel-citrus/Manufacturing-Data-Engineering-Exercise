@@ -6,22 +6,35 @@ Pulls production runs, counter readings, and downtime events from `https://exerc
 
 Requires Python 3.11 or newer (tested with 3.13 and 3.14).
 
+**1. Get the code and install the packages**
+
 ```sh
+git clone https://github.com/daniel-citrus/Manufacturing-Data-Engineering-Exercise.git
+cd Manufacturing-Data-Engineering-Exercise
 python3 -m venv .venv
-source .venv/bin/activate        # Windows: .venv\Scripts\activate
+source .venv/bin/activate
 pip install -r requirements.txt
+```
+
+On Windows, use `py -m venv .venv` and `.venv\Scripts\activate` instead of the `python3` and `source` lines.
+
+**2. Run the notebooks**
+
+Either open them in JupyterLab and use **Run → Run All Cells** in each one:
+
+```sh
 jupyter lab
 ```
 
-To reproduce the results without opening Jupyter (works offline, from the raw data saved in `data/raw/`):
+Or rerun them all from the command line:
 
 ```sh
-jupyter nbconvert --to notebook --execute --inplace --ExecutePreprocessor.kernel_name=python3 \
-  02_cleaning_data.ipynb 03_assumptions_and_observations.ipynb 04_production_metrics.ipynb \
-  05_lowest_performing_run.ipynb 06_unsupported_conclusions.ipynb
+jupyter nbconvert --to notebook --execute --inplace --ExecutePreprocessor.kernel_name=python3 "0[2-6]*.ipynb"
 ```
 
-Add `01_pulling_data.ipynb` to the start of that command to pull fresh data from the API first. The notebooks are saved with their output, so they can also be read without running anything.
+Either way, the notebooks work offline from the API snapshot saved in `data/raw/`, give the same results, and rewrite `data/processed/run_level_dataset.csv`. To pull fresh data from the API first, run `01_pulling_data.ipynb` the same way before the others (needs internet access).
+
+The notebooks are saved with their output, so they can also be read on GitHub without running anything.
 
 | Notebook | What it does |
 |---|---|
