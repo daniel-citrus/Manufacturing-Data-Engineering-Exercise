@@ -43,12 +43,9 @@ const stores: Record<DatasetKind, Store<DatasetsState>> = {
   cleaned: createStore<DatasetsState>({ states: null, busy: false }),
 }
 
-async function fetchDataset(
-  kind: DatasetKind,
-  name: string,
-): Promise<Loaded> {
+async function fetchDataset(url: string, init?: RequestInit): Promise<Loaded> {
   try {
-    const res = await fetch(`/api/${kind}/${name}`)
+    const res = await fetch(url, init)
     if (!res.ok) {
       const body = (await res.json().catch(() => null)) as {
         detail?: unknown
@@ -62,22 +59,58 @@ async function fetchDataset(
   }
 }
 
+// Counts each store's loads, so results from a load that was replaced or cleared are dropped.
+const loads: Record<DatasetKind, number> = { raw: 0, cleaned: 0 }
+
 // The results land in the store even if the page was left while they loaded.
-async function loadDatasets(kind: DatasetKind) {
+async function loadInto(kind: DatasetKind, fetchOne: (dataset: Dataset, i: number) => Promise<Loaded>) {
   const store = stores[kind]
+  const load = ++loads[kind]
   store.set({ states: DATASETS.map(() => ({ status: 'loading' })), busy: true })
   await Promise.all(
     DATASETS.map(async (dataset, i) => {
-      const state = await fetchDataset(kind, dataset.name)
+      const state = await fetchOne(dataset, i)
+      if (load !== loads[kind]) return
       const { states, busy } = store.get()
       store.set({ busy, states: states && states.map((s, j) => (j === i ? state : s)) })
     }),
   )
-  store.set({ ...store.get(), busy: false })
+  if (load === loads[kind]) store.set({ ...store.get(), busy: false })
 }
 
-// Nothing loads until load() is called; each call fetches every dataset again.
+function allReady(states: Loaded[] | null): states is Extract<Loaded, { status: 'ready' }>[] {
+  return states !== null && states.every((state) => state.status === 'ready')
+}
+
+// Pulls every dataset from the exercise API. The cleaned data came from the previous pull, so
+// it's cleared until this pull is cleaned.
+async function pullRaw() {
+  loads.cleaned++
+  stores.cleaned.set({ states: null, busy: false })
+  await loadInto('raw', (dataset) => fetchDataset(`/api/raw/${dataset.name}`))
+}
+
+// Cleans the records the Raw data page pulled, so the whole app works from that one pull.
+async function cleanRaw() {
+  const raw = stores.raw.get().states
+  if (!allReady(raw)) return
+  await loadInto('cleaned', (dataset, i) =>
+    fetchDataset(`/api/cleaned/${dataset.name}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(raw[i].records),
+    }),
+  )
+}
+
+// Nothing loads until load() is called. Raw data is pulled again on each call; cleaned data is
+// the current raw data cleaned, and needs every raw dataset loaded first.
 export function useDatasets(kind: DatasetKind) {
   const { states, busy } = useStore(stores[kind])
-  return { states, busy, load: () => loadDatasets(kind) }
+  return {
+    states,
+    busy,
+    ready: !busy && allReady(states),
+    load: kind === 'raw' ? pullRaw : cleanRaw,
+  }
 }

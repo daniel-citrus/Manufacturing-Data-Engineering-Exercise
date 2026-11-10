@@ -69,10 +69,11 @@ def get_raw(dataset: str) -> list[dict]:
     return fetch_raw(dataset)
 
 
-@app.get("/api/cleaned/{dataset}")
-def get_cleaned(dataset: str) -> list[dict]:
+# Cleans the raw records the app already pulled, so every page shows the same pull.
+@app.post("/api/cleaned/{dataset}")
+def post_cleaned(dataset: str, records: list[dict]) -> list[dict]:
     check_dataset(dataset)
-    return clean_dataset(dataset, fetch_raw(dataset))
+    return clean_dataset(dataset, records)
 
 
 # The repo's README as Markdown, for the app's README page. Read on every request, like the CSV.

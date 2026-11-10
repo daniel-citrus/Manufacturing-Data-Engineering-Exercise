@@ -303,11 +303,12 @@ function DashboardPage() {
   return (
     <Page>
       <PageHeader title="Dashboard">
-        {/* Pulls and cleans again into the Raw data and Cleaned data pages, which this page reads */}
+        {/* Pulls into the Raw data page, then cleans that pull into the Cleaned data page, which
+            this page reads */}
         <Button
-          onClick={() => {
-            raw.load()
-            cleaned.load()
+          onClick={async () => {
+            await raw.load()
+            await cleaned.load()
           }}
           disabled={busy}
         >

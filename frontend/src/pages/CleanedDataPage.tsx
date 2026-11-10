@@ -2,13 +2,25 @@ import { DatasetSection } from '../components/DataTable'
 import { Button, Page, PageHeader } from '../components/ui'
 import { DATASETS, useDatasets } from '../data/datasets'
 
+// Cleans what the Raw data page pulled, so it waits until that pull has fully loaded.
 function CleanedDataPage() {
   const { states, busy, load } = useDatasets('cleaned')
+  const raw = useDatasets('raw')
 
   return (
     <Page>
       <PageHeader title="Cleaned data" subtitle="The same datasets after cleaning.">
-        <Button variant="primary" onClick={load} disabled={busy}>
+        {!raw.ready && (
+          <span id="clean-hint" className="self-center text-sm text-muted">
+            Pull raw data first
+          </span>
+        )}
+        <Button
+          variant="primary"
+          onClick={load}
+          disabled={busy || !raw.ready}
+          aria-describedby={raw.ready ? undefined : 'clean-hint'}
+        >
           Clean data
         </Button>
       </PageHeader>

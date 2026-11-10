@@ -4,6 +4,7 @@ from .assumptions import CleaningError, to_cases_per_hour, to_utc
 
 
 def clean_production_runs(runs: list[dict]) -> list[dict]:
+    """Times in UTC, product codes trimmed and uppercased, target rates in cases per hour."""
     cleaned = []
     for run in runs:
         run_id = run["run_id"]
@@ -24,13 +25,14 @@ def clean_production_runs(runs: list[dict]) -> list[dict]:
 
 
 def to_int(count):
-    # Numeric text such as "1180" becomes 1180; anything else stays as sent.
+    """Numeric text such as "1180" becomes 1180; anything else stays as sent."""
     if isinstance(count, str) and count.strip().isdecimal():
         return int(count)
     return count
 
 
 def clean_counter_readings(readings: list[dict]) -> list[dict]:
+    """Times in UTC, and the payload split into a count and a unit."""
     cleaned = []
     for reading in readings:
         record = {key: value for key, value in reading.items() if key != "payload"}
@@ -42,6 +44,7 @@ def clean_counter_readings(readings: list[dict]) -> list[dict]:
 
 
 def clean_downtime_events(events: list[dict]) -> list[dict]:
+    """Times in UTC; everything else as sent."""
     return [
         {
             **event,
@@ -60,7 +63,8 @@ CLEANERS = {
 
 
 def clean_dataset(dataset: str, records: list[dict]) -> list[dict]:
+    """Clean a dataset by name; data it can't clean becomes a 422 saying why."""
     try:
         return CLEANERS[dataset](records)
     except (CleaningError, KeyError, TypeError, AttributeError) as error:
-        raise HTTPException(502, f"Could not clean {dataset}: {error}")
+        raise HTTPException(422, f"Could not clean {dataset}: {error}")

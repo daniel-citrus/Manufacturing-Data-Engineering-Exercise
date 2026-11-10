@@ -17,7 +17,7 @@ Throughput analysis of packaging-line production runs. The app pulls three datas
 ## Operating Context
 
 - Started with `docker compose up --build` and opened at http://localhost:8080. It needs internet access to reach the exercise API.
-- The pages chain: README, then Raw data (Pull raw data), then Cleaned data (Clean data), then Dashboard, which reads what the Cleaned data page loaded. Reloading the browser clears the loaded data.
+- The pages chain on one shared pull: README, then Raw data (Pull raw data), then Cleaned data (Clean data, which cleans that pull and is unavailable until it has loaded), then Dashboard, which reads what the Cleaned data page loaded. Pulling again clears the cleaned data. Reloading the browser clears the loaded data.
 - The dashboard downloads the run-level result as CSV or JSON.
 - The analysis also lives in the notebooks under `analysis/`, which the app's numbers match.
 

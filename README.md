@@ -32,7 +32,7 @@ If port 8080 is taken, run `PORT=9000 docker compose up --build` (in PowerShell,
 The app needs internet access to reach the exercise API.
 
 1. **Raw data:** click **Pull raw data** to see the three datasets as the API sends them.
-2. **Cleaned data:** click **Clean data** to see them after cleaning.
+2. **Cleaned data:** click **Clean data** to clean the data you pulled. It needs the raw data first.
 3. **Dashboard:** see which run each counter reading and downtime event belongs to, each run's metrics, and the lowest-performing run.
 
 Reloading the browser clears the loaded data.
