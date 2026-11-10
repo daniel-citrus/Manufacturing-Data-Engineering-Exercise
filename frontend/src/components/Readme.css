@@ -1,0 +1,193 @@
+/* The README page: Markdown rendered as HTML. Blocks keep a readable line length and line up
+   with the other pages. */
+.readme > * {
+  max-width: 860px;
+}
+
+/* Each "##" section is a collapsed dropdown. A hairline separates them; color stays out of it. */
+.readme-section {
+  margin-top: 4px;
+  padding-top: 4px;
+  border-top: 1px solid var(--border);
+}
+
+.readme-section:first-of-type {
+  margin-top: 28px;
+}
+
+.readme-section > summary {
+  margin: 0 -8px;
+  padding: 8px;
+  border-radius: 6px;
+}
+
+.readme-section > summary:hover {
+  background: var(--surface);
+}
+
+.readme-section > div {
+  padding: 4px 0 8px 24px;
+}
+
+.readme-section > div > :last-child {
+  margin-bottom: 0;
+}
+
+.readme h1 {
+  margin-bottom: 16px;
+}
+
+.readme h2 {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--text-h);
+}
+
+.readme p,
+.readme ul,
+.readme ol,
+.readme pre,
+.readme-code-block,
+.readme table,
+.readme details:not(.readme-section) {
+  margin: 0 0 16px;
+}
+
+.readme ul,
+.readme ol {
+  padding-left: 24px;
+}
+
+.readme li + li {
+  margin-top: 4px;
+}
+
+.readme a {
+  color: var(--text-h);
+}
+
+.readme strong {
+  color: var(--text-h);
+}
+
+.readme code {
+  padding: 1px 5px;
+  border-radius: 4px;
+  background: var(--surface);
+  font-family: ui-monospace, 'SF Mono', Menlo, Consolas, monospace;
+  font-size: 0.875em;
+}
+
+.readme-code-block {
+  position: relative;
+}
+
+.readme-code-block pre {
+  margin: 0;
+}
+
+.readme pre {
+  padding: 12px 16px;
+  padding-top: 40px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface);
+  overflow-x: auto;
+}
+
+.readme-copy {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  z-index: 1;
+  padding: 4px 10px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--bg);
+  color: var(--text-muted);
+  font: inherit;
+  font-size: 13px;
+  line-height: 1.2;
+  cursor: pointer;
+}
+
+.readme-copy:hover {
+  color: var(--text-h);
+  border-color: var(--text-muted);
+}
+
+.readme-copy:focus-visible {
+  outline: 2px solid var(--text-h);
+  outline-offset: 2px;
+}
+
+.readme pre code {
+  padding: 0;
+  background: none;
+}
+
+/* Sentences wrap, unlike the data cells elsewhere */
+.readme td {
+  white-space: normal;
+}
+
+/* Dropdowns written in the README itself, like the Docker install steps */
+.readme details:not(.readme-section) {
+  padding: 12px 16px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+
+.readme summary {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  list-style: none;
+  cursor: pointer;
+  font-weight: 600;
+  color: var(--text-h);
+}
+
+.readme summary:focus-visible {
+  outline: 2px solid var(--text-h);
+  outline-offset: 2px;
+}
+
+.readme summary::-webkit-details-marker {
+  display: none;
+}
+
+.readme summary::marker {
+  content: '';
+}
+
+/* A chevron that points right when closed and down when open */
+.readme summary::before {
+  content: '';
+  flex: none;
+  width: 6px;
+  height: 6px;
+  border-right: 2px solid var(--text-muted);
+  border-bottom: 2px solid var(--text-muted);
+  transform: rotate(-45deg);
+  transition: transform 150ms ease-out;
+}
+
+.readme details[open] > summary::before {
+  transform: rotate(45deg);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .readme summary::before {
+    transition: none;
+  }
+}
+
+.readme details[open] > summary {
+  margin-bottom: 12px;
+}
+
+.readme details:not(.readme-section) > :last-child {
+  margin-bottom: 0;
+}

@@ -3,6 +3,7 @@ from datetime import datetime
 from pathlib import Path
 
 from fastapi import FastAPI, HTTPException
+from fastapi.responses import PlainTextResponse
 from pydantic import BaseModel
 
 from datasets import DATASETS, clean_dataset, fetch_raw
@@ -14,6 +15,7 @@ RUN_LEVEL_CSV = (
     / "processed"
     / "run_level_dataset.csv"
 )
+README = Path(__file__).resolve().parent.parent / "README.md"
 
 
 class Run(BaseModel):
@@ -71,3 +73,11 @@ def get_raw(dataset: str) -> list[dict]:
 def get_cleaned(dataset: str) -> list[dict]:
     check_dataset(dataset)
     return clean_dataset(dataset, fetch_raw(dataset))
+
+
+# The repo's README as Markdown, for the app's README page. Read on every request, like the CSV.
+@app.get("/api/readme", response_class=PlainTextResponse)
+def get_readme() -> PlainTextResponse:
+    if not README.is_file():
+        raise HTTPException(status_code=404, detail="README.md not found")
+    return PlainTextResponse(README.read_text(), media_type="text/markdown; charset=utf-8")

@@ -1,43 +1,13 @@
+import { useEffect, useId, useLayoutEffect, useRef, useState } from 'react'
 import { AttainmentChart } from '../components/AttainmentChart'
 import { RunTimeline } from '../components/RunTimeline'
 import { findLowestRun, useAnalysis, type Analysis, type Run } from '../data/analysis'
+import { useDatasets } from '../data/datasets'
 import { formatCount, formatNumber, formatTime } from '../format'
 import '../App.css'
 import '../components/Dashboard.css'
 
 const QUARTER_HOUR = 15 * 60_000
-
-// The assumptions and decisions behind the numbers, as written in analysis/
-const GROUND_RULES = [
-  'Counts are a running total, so they should only go up.',
-  "A reading belongs to a run on the same machine if its time is between the run's start and end, including exactly at the start or end.",
-  'A stop belongs to a run on the same machine if any part of it overlaps the run.',
-  'All times are in UTC, and the time zone offsets in the data are assumed to be correct.',
-  'Target rates in cases/minute are multiplied by 60 to get cases/hour.',
-]
-
-const DECISIONS = [
-  {
-    decision: 'C010 (1760 → 25) is a glitch, so R101 is counted only up to 14:40',
-    other: 'Treat it as a counter reset: R101 reaches 91.1%, and R102 becomes the lowest run',
-  },
-  {
-    decision: 'C001 and C014, taken 1 minute before R100 and R102 start, are left out',
-    other: 'Use them as starting counts: R100 reaches 94% and R102 96%',
-  },
-  {
-    decision: "Only D002's 4 minutes inside R101 count",
-    other: 'Leave D002 out: R101 downtime is 5.5 minutes instead of 9.5',
-  },
-  {
-    decision: "D003 and D004's shared 1.5 minutes count once",
-    other: 'Drop D004: those stops count 4.0 minutes instead of 5.5',
-  },
-  {
-    decision: 'R104 has no end time, so it gets no metrics',
-    other: 'Use 15:40, the last reading, as its end: 150 cases, 83%',
-  },
-]
 
 function runWindow(run: Run) {
   return `${formatTime(run.run_start)}–${run.run_end ? formatTime(run.run_end) : 'no end'}`
@@ -117,23 +87,100 @@ function Legend() {
   )
 }
 
+// How each run metrics value is worked out, shown when its column name is hovered or focused
+const COLUMNS: { label: string; how: string; num?: boolean }[] = [
+  {
+    label: 'Run',
+    how: 'The run from the production runs. Lowest marks the completed run with the lowest attainment.',
+  },
+  { label: 'Window', how: 'Run start to run end, in UTC.' },
+  {
+    label: 'Readings used',
+    how: "Counter readings on the run's machine taken from its start to its end, both included. Left out: counts that aren't numbers, duplicates, and counts lower than the run's last good count.",
+  },
+  {
+    label: 'Stops counted (min)',
+    how: "Downtime events on the run's machine that overlap it, with the minutes each adds. Only minutes inside the run count, and time two stops share counts once.",
+  },
+  {
+    label: 'Cases',
+    how: 'Last reading used − first reading used. — when the run has no end time or no readings used.',
+    num: true,
+  },
+  { label: 'Elapsed (min)', how: 'Run end − run start.', num: true },
+  { label: 'Downtime (min)', how: "Sum of the run's stops counted.", num: true },
+  { label: 'Operating (min)', how: 'Elapsed − downtime.', num: true },
+  { label: 'Throughput (cases/h)', how: 'Cases ÷ operating minutes × 60.', num: true },
+  {
+    label: 'Target (cases/h)',
+    how: "The run's target rate. Rates given per minute are multiplied by 60.",
+    num: true,
+  },
+  { label: 'Attainment', how: 'Throughput ÷ target × 100.', num: true },
+]
+
+function ColumnHeader({ label, how, num }: (typeof COLUMNS)[number]) {
+  const id = useId()
+  const [open, setOpen] = useState(false)
+  const cell = useRef<HTMLTableCellElement>(null)
+  const tip = useRef<HTMLSpanElement>(null)
+
+  // Fixed to the window so the table's scroll box can't clip it, and kept on screen.
+  useLayoutEffect(() => {
+    if (!open || !cell.current || !tip.current) return
+    const box = cell.current.getBoundingClientRect()
+    const width = tip.current.offsetWidth
+    const left = num ? box.right - 12 - width : box.left + 12
+    tip.current.style.top = `${box.bottom}px`
+    tip.current.style.left = `${Math.max(8, Math.min(left, window.innerWidth - width - 8))}px`
+  }, [open, num])
+
+  // Escape closes it, and so does scrolling, which would otherwise leave it behind.
+  useEffect(() => {
+    if (!open) return
+    const close = () => setOpen(false)
+    const onKeyDown = (event: KeyboardEvent) => event.key === 'Escape' && close()
+    window.addEventListener('scroll', close, true)
+    window.addEventListener('keydown', onKeyDown)
+    return () => {
+      window.removeEventListener('scroll', close, true)
+      window.removeEventListener('keydown', onKeyDown)
+    }
+  }, [open])
+
+  return (
+    <th
+      ref={cell}
+      scope="col"
+      className={num ? 'num' : undefined}
+      onMouseEnter={() => setOpen(true)}
+      onMouseLeave={() => setOpen(false)}
+    >
+      <span
+        className="column-name"
+        tabIndex={0}
+        aria-describedby={id}
+        onFocus={() => setOpen(true)}
+        onBlur={() => setOpen(false)}
+      >
+        {label}
+      </span>
+      <span ref={tip} id={id} role="tooltip" className="chart-tooltip column-tip" hidden={!open}>
+        {how}
+      </span>
+    </th>
+  )
+}
+
 function RunMetricsTable({ analysis, lowest }: { analysis: Analysis | null; lowest: Run | undefined }) {
   return (
     <div className="table-wrap">
       <table>
         <thead>
           <tr>
-            <th scope="col">Run</th>
-            <th scope="col">Window</th>
-            <th scope="col">Readings used</th>
-            <th scope="col">Stops counted (min)</th>
-            <th scope="col" className="num">Cases</th>
-            <th scope="col" className="num">Elapsed (min)</th>
-            <th scope="col" className="num">Downtime (min)</th>
-            <th scope="col" className="num">Operating (min)</th>
-            <th scope="col" className="num">Throughput (cases/h)</th>
-            <th scope="col" className="num">Target (cases/h)</th>
-            <th scope="col" className="num">Attainment</th>
+            {COLUMNS.map((column) => (
+              <ColumnHeader key={column.label} {...column} />
+            ))}
           </tr>
         </thead>
         <tbody>
@@ -177,41 +224,11 @@ function RunMetricsTable({ analysis, lowest }: { analysis: Analysis | null; lowe
   )
 }
 
-function Assumptions() {
-  return (
-    <section className="assumptions" aria-labelledby="assumptions-heading">
-      <h2 id="assumptions-heading">Assumptions</h2>
-      <ul>
-        {GROUND_RULES.map((rule) => (
-          <li key={rule}>{rule}</li>
-        ))}
-      </ul>
-      <h3>Decisions that change the result</h3>
-      <div className="table-wrap">
-        <table>
-          <thead>
-            <tr>
-              <th scope="col">Decision</th>
-              <th scope="col">Other option and its effect</th>
-            </tr>
-          </thead>
-          <tbody>
-            {DECISIONS.map(({ decision, other }) => (
-              <tr key={decision}>
-                <td>{decision}</td>
-                <td>{other}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-    </section>
-  )
-}
-
 // Charts of the data loaded on the Cleaned data page; empty until it has loaded there.
 function DashboardPage() {
   const analysis = useAnalysis()
+  const raw = useDatasets('raw')
+  const cleaned = useDatasets('cleaned')
   const runs = analysis?.runs ?? []
   const readings = analysis?.readings ?? []
   const events = analysis?.events ?? []
@@ -224,6 +241,19 @@ function DashboardPage() {
   return (
     <main className="dashboard">
       <h1>Dashboard</h1>
+      {/* Pulls and cleans again into the Raw data and Cleaned data pages, which this page reads */}
+      <p className="data-actions">
+        <button
+          type="button"
+          onClick={() => {
+            raw.load()
+            cleaned.load()
+          }}
+          disabled={raw.busy || cleaned.busy}
+        >
+          Refresh
+        </button>
+      </p>
       <div className="dashboard-body">
         <div className="stats">
           <Stat label="Completed runs" value={ofAll(completed.length, runs.length)} />
@@ -275,8 +305,6 @@ function DashboardPage() {
           <h2 id="metrics-heading">Run metrics</h2>
           <RunMetricsTable analysis={analysis} lowest={lowest} />
         </section>
-
-        <Assumptions />
       </div>
     </main>
   )

@@ -33,14 +33,32 @@ The app needs internet access to reach the exercise API.
 
 1. **Raw data:** click **Pull raw data** to see the three datasets as the API sends them.
 2. **Cleaned data:** click **Clean data** to see them after cleaning.
-3. **Dashboard:** see which run each counter reading and downtime event belongs to, each run's metrics, the lowest-performing run, and the assumptions behind them.
+3. **Dashboard:** see which run each counter reading and downtime event belongs to, each run's metrics, and the lowest-performing run.
 
 Reloading the browser clears the loaded data.
 
-## What's where
+## Assumptions
 
-| Folder | Contents |
-|---|---|
-| [`analysis/`](analysis/) | Jupyter notebooks with the full analysis. Results, assumptions, and how to rerun them are in [`analysis/README.md`](analysis/README.md). |
-| [`backend/`](backend/) | FastAPI app that fetches and cleans the datasets |
-| [`frontend/`](frontend/) | Vite + React app |
+- Counts are a running total, so a count that drops within a run is a glitch and is ignored. That's why C010 (1760 → 25) ends R101's count at 14:40.
+- A reading belongs to a run on the same machine if it falls within the run, ends included. Readings just before a run starts (C001, C014) are left out.
+- A stop belongs to a run if it overlaps it. Only the overlap counts (D002), and time shared by two stops counts once (D003 and D004).
+- Times are converted to UTC, trusting the offsets in the data. Rates in cases/minute are multiplied by 60.
+- R104 has no end time, so it gets no metrics.
+
+## Data-quality findings
+
+- **All tables:** times mix `-05:00` and `Z` offsets.
+- **Production runs:** product codes vary in case and spacing, target rates come in two units, and R104 has no end time.
+- **Counter readings:** counts are nested in a JSON payload, some are text (`"1180"`, `"ERROR"`), C003 and C004 are duplicates, counts drop at C010 and C022, and C024 is on PKG-99, which has no runs.
+- **Downtime events:** the material reason is written three ways, half the reasons are `Unknown`, D002 starts before its run, and D003 and D004 overlap.
+
+## Unsupported conclusions
+
+- **The lowest run:** R101 if the C010 drop is a glitch, R102 if it's a counter reset, and R103 if C001 and C014 are also used.
+- **R100, R101 and R102's attainment:** counting starts late or stops early while the whole run still counts, so it's understated.
+- **R104:** it has no end time, and the operator stop (D010) doesn't prove it ended.
+- **Downtime causes:** half the reasons are `Unknown`, and the material reason isn't recorded consistently.
+- **Why R103 fell short:** it logged only 3.6 minutes of downtime, so slow running and unrecorded stops can't be told apart.
+- **Comparing machines or products:** each machine made different products, and there are only 5 runs.
+
+Full detail, with the evidence and the effect of each alternative, is in [`analysis/README.md`](analysis/README.md) and notebooks 03 and 06.

@@ -394,25 +394,30 @@
 
 /* Run metrics */
 
+.column-name {
+  cursor: help;
+  text-decoration: underline dotted var(--text-muted);
+  text-underline-offset: 3px;
+}
+
+.column-name:focus-visible {
+  outline: 2px solid var(--text-h);
+  outline-offset: 2px;
+  border-radius: 2px;
+}
+
+/* Placed from script, flush under its header so the pointer can move onto it */
+.column-tip {
+  position: fixed;
+  transform: none;
+  font-weight: 400;
+  text-align: left;
+  white-space: normal;
+  pointer-events: auto;
+}
+
 td.list {
   white-space: normal;
   min-width: 140px;
   font-size: 13px;
-}
-
-/* Assumptions */
-
-.assumptions ul {
-  margin: 0;
-  padding-left: 20px;
-}
-
-.assumptions li + li {
-  margin-top: 4px;
-}
-
-/* Sentences wrap, unlike the data cells elsewhere */
-.assumptions td {
-  width: 50%;
-  white-space: normal;
 }

@@ -4,6 +4,8 @@ services:
     volumes:
       # Read-only, and live: rerunning the notebooks updates the API without a rebuild.
       - ./analysis/data/processed:/app/analysis/data/processed:ro
+      # The app's README page shows this file.
+      - ./README.md:/app/README.md:ro
     # No published port: the frontend's nginx reaches it as backend:8000 and serves it at /api.
 
   frontend:

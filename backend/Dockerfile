@@ -1,6 +1,6 @@
 FROM python:3.14-slim
 
-# Same layout as the repo, so main.py finds ../analysis/data/processed (mounted by compose.yaml).
+# Same layout as the repo, so main.py finds ../analysis/data/processed and ../README.md (mounted by compose.yaml).
 WORKDIR /app/backend
 
 COPY requirements.txt .
