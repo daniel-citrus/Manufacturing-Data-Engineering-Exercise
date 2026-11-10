@@ -1,4 +1,5 @@
 import { useMemo } from 'react'
+import { formatTime } from '../format'
 import { DATASETS, useDatasets, type DataRecord } from './datasets'
 
 // The records as the Cleaned data page shows them
@@ -41,6 +42,7 @@ export type Run = {
   operating_minutes: number | null
   operating_throughput_cph: number | null
   target_attainment_percent: number | null
+  data_quality_notes: string
 }
 
 export type MatchedReading = CleanReading & {
@@ -156,17 +158,37 @@ function runMetrics(run: CleanRun, readings: MatchedReading[], events: MatchedEv
     operating_minutes: null,
     operating_throughput_cph: null,
     target_attainment_percent: null,
+    data_quality_notes: '',
   }
-  const used = readings.filter((r) => r.run_id === run.run_id && r.used)
-  if (used.length === 0) return row
+  const mine = readings.filter((r) => r.run_id === run.run_id)
+  const used = mine.filter((r) => r.used)
+  if (used.length === 0) return { ...row, data_quality_notes: 'no usable counter readings, so no metrics' }
+  const first = used[0]
+  const last = used.at(-1)!
+  const stops = events.filter((e) => e.run_id === run.run_id)
   const cases = (used.at(-1)!.count as number) - (used[0].count as number)
-  if (run.end_time === null) return { ...row, cases_produced: cases }
+  if (run.end_time === null) {
+    let note = `no end time, so cases are counted only to ${last.reading_id} at ${formatTime(last.recorded_at)} and there's no rate`
+    if (stops.length > 0) note += `; ${stops.map((e) => e.event_id).join(', ')} adds no downtime`
+    return { ...row, cases_produced: cases, data_quality_notes: note }
+  }
   const elapsed = (ms(run.end_time) - ms(run.start_time)) / MINUTE
   const downtime = events
     .filter((e) => e.run_id === run.run_id && e.used)
     .reduce((sum, e) => sum + e.minutes_counted!, 0)
   const operating = elapsed - downtime
   const throughput = (cases / operating) * 60
+  const notes: string[] = []
+  const startGap = (ms(first.recorded_at) - ms(run.start_time)) / MINUTE
+  const endGap = (ms(run.end_time) - ms(last.recorded_at)) / MINUTE
+  if (startGap > 0)
+    notes.push(`counted from ${first.reading_id} at ${formatTime(first.recorded_at)}, ${startGap.toFixed(0)} min after the start`)
+  if (endGap > 0)
+    notes.push(`counted to ${last.reading_id} at ${formatTime(last.recorded_at)}, ${endGap.toFixed(0)} min before the end`)
+  const skipped = mine.filter((r) => !r.used)
+  if (skipped.length > 0)
+    notes.push(`readings not used: ${skipped.map((r) => `${r.reading_id} (${r.why_not})`).join(', ')}`)
+  notes.push(...stops.filter((e) => e.used && e.note).map((e) => `${e.event_id} ${e.note}`))
   return {
     ...row,
     cases_produced: cases,
@@ -175,6 +197,7 @@ function runMetrics(run: CleanRun, readings: MatchedReading[], events: MatchedEv
     operating_minutes: operating,
     operating_throughput_cph: throughput,
     target_attainment_percent: (throughput / run.target_hourly_rate) * 100,
+    data_quality_notes: notes.join('; '),
   }
 }
 

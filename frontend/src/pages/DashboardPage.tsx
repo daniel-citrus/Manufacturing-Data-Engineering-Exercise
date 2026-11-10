@@ -9,6 +9,48 @@ import '../components/Dashboard.css'
 
 const QUARTER_HOUR = 15 * 60_000
 
+// The final run-level result, in the order of the required output
+const RESULT_FIELDS = [
+  'run_id',
+  'equipment_id',
+  'product_code',
+  'run_start',
+  'run_end',
+  'target_rate_cases_per_hour',
+  'cases_produced',
+  'elapsed_minutes',
+  'downtime_minutes',
+  'operating_minutes',
+  'operating_throughput_cph',
+  'target_attainment_percent',
+  'data_quality_notes',
+] as const
+
+function resultRows(runs: Run[]) {
+  return runs.map((run) => Object.fromEntries(RESULT_FIELDS.map((field) => [field, run[field]])))
+}
+
+// Empty cells for missing values, and quotes around text that has a comma, quote or line break
+function toCsv(runs: Run[]) {
+  const cell = (value: unknown) => {
+    const text = value === null ? '' : String(value)
+    return /[",\n]/.test(text) ? `"${text.replaceAll('"', '""')}"` : text
+  }
+  return [
+    RESULT_FIELDS.join(','),
+    ...resultRows(runs).map((row) => RESULT_FIELDS.map((field) => cell(row[field])).join(',')),
+  ].join('\n') + '\n'
+}
+
+function download(name: string, type: string, content: string) {
+  const url = URL.createObjectURL(new Blob([content], { type }))
+  const link = document.createElement('a')
+  link.href = url
+  link.download = name
+  link.click()
+  URL.revokeObjectURL(url)
+}
+
 function runWindow(run: Run) {
   return `${formatTime(run.run_start)}–${run.run_end ? formatTime(run.run_end) : 'no end'}`
 }
@@ -252,6 +294,22 @@ function DashboardPage() {
           disabled={raw.busy || cleaned.busy}
         >
           Refresh
+        </button>
+        <button
+          type="button"
+          onClick={() => download('run_metrics.csv', 'text/csv', toCsv(runs))}
+          disabled={!analysis}
+        >
+          Download CSV
+        </button>
+        <button
+          type="button"
+          onClick={() =>
+            download('run_metrics.json', 'application/json', JSON.stringify(resultRows(runs), null, 2) + '\n')
+          }
+          disabled={!analysis}
+        >
+          Download JSON
         </button>
       </p>
       <div className="dashboard-body">
