@@ -39,6 +39,11 @@ function App() {
 
   const current = pages.find((page) => page.path === path)
 
+  // Each page gets its own title, so tabs, history and screen readers can tell them apart.
+  useEffect(() => {
+    document.title = `${current?.label ?? 'Page not found'} · Production Runs`
+  }, [current])
+
   // A sidebar that stays put on wide screens, and a bar of tabs across the top on a phone.
   return (
     <div className="md:flex md:min-h-screen">

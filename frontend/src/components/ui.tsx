@@ -46,6 +46,7 @@ const BUTTON_VARIANTS = {
   secondary: 'border-line bg-page text-ink enabled:hover:bg-surface',
 }
 
+// Pressing shrinks it a little, except with reduced motion, which keeps only the color change.
 export function Button({
   variant = 'secondary',
   className = '',
@@ -54,7 +55,7 @@ export function Button({
   return (
     <button
       type="button"
-      className={`inline-flex h-9 cursor-pointer items-center rounded-lg border px-3.5 text-sm font-medium transition-[background-color,scale] duration-150 enabled:active:scale-[0.97] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink disabled:cursor-not-allowed disabled:opacity-50 motion-reduce:transition-none ${BUTTON_VARIANTS[variant]} ${className}`}
+      className={`inline-flex h-9 cursor-pointer items-center rounded-lg border px-3.5 text-sm font-medium transition-[background-color,scale] duration-150 ease-out focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink disabled:cursor-not-allowed disabled:opacity-50 motion-safe:enabled:active:scale-[0.97] ${BUTTON_VARIANTS[variant]} ${className}`}
       {...props}
     />
   )

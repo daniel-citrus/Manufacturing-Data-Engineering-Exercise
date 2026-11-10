@@ -3,15 +3,19 @@ import {
   useLayoutEffect,
   useRef,
   useState,
+  type FocusEvent,
   type KeyboardEvent,
 } from 'react'
 import type { MatchedEvent, MatchedReading, Run } from '../data/analysis'
 import { formatCount, formatNumber, formatTime } from '../format'
+import { useTooltip } from './hooks'
 import { tooltipBox } from './ui'
 
 // How each kind of mark looks, in the chart and in its legend
 const MARK = {
   run: 'fill-surface',
+  // Dotted lines at a run's start and end, since the band alone barely differs from the page
+  runEdge: 'fill-none stroke-muted stroke-1 [stroke-dasharray:2_3]',
   count: 'fill-none stroke-chart-count stroke-2 [stroke-linecap:round] [stroke-linejoin:round]',
   reading: 'fill-chart-count stroke-page stroke-2',
   readingUnused: 'fill-page stroke-muted stroke-[1.5]',
@@ -27,7 +31,8 @@ const LEFT = 64
 const RIGHT = 16
 const TOP = 28
 const PLOT = 150
-const ROW = 22
+// At least 24, so each stop's tap area is 24 px tall
+const ROW = 24
 const AXIS = 24
 const MINUTE = 60_000
 // Below this plot width, labels of unused readings would collide, so only the tooltip names them.
@@ -135,7 +140,8 @@ export function RunTimelineLegend() {
       </li>
       <li className="flex items-center gap-1.5">
         <svg width="20" height="12" aria-hidden="true">
-          <rect className={`${MARK.run} stroke-line`} x="0.5" y="0.5" width="19" height="11" />
+          <rect className={MARK.run} x="0" y="0" width="20" height="12" />
+          <path className={MARK.runEdge} d="M0.5,0V12M19.5,0V12" />
         </svg>
         Run
       </li>
@@ -160,7 +166,9 @@ export function RunTimeline({
   lowest: Run | undefined
 }) {
   const [ref, width] = useWidth()
-  const [active, setActive] = useState<number | null>(null)
+  const { active, open, close, closeSoon, hoverable } = useTooltip<number>()
+  // A mark focused from the keyboard says how to reach the others.
+  const [byKeyboard, setByKeyboard] = useState(false)
   const [focusIndex, setFocusIndex] = useState(0)
   const hits = useRef<(SVGElement | null)[]>([])
   const id = useId()
@@ -251,7 +259,7 @@ export function RunTimeline({
     ...events.map((event, i): Item => {
       const x0 = x(event.start_time)
       const x1 = x(event.end_time)
-      const hitWidth = Math.max(x1 - x0, 16)
+      const hitWidth = Math.max(x1 - x0, 24)
       return {
         key: event.event_id,
         time: Date.parse(event.start_time),
@@ -274,7 +282,6 @@ export function RunTimeline({
   ].toSorted((a, b) => a.time - b.time)
 
   function onKeyDown(event: KeyboardEvent, index: number) {
-    if (event.key === 'Escape') return setActive(null)
     const next = { ArrowRight: index + 1, ArrowLeft: index - 1, Home: 0, End: items.length - 1 }[
       event.key
     ]
@@ -294,7 +301,7 @@ export function RunTimeline({
           width={width}
           height={height}
           role="group"
-          aria-label={`${machine}: runs, counter readings and downtime over time`}
+          aria-label={`${machine}: runs, counter readings and downtime over time. Left and right arrows move between marks.`}
         >
           <defs>
             {/* A run or stop with no end fades out instead of stopping at the edge. Set as a style,
@@ -347,6 +354,17 @@ export function RunTimeline({
                   </text>
                 )}
               </g>
+            ))}
+            {/* A run with no end gets only its start, since it fades out instead */}
+            {runs.map((run) => (
+              <path
+                key={run.run_id}
+                className={MARK.runEdge}
+                d={[run.run_start, run.run_end]
+                  .filter((time) => time !== null)
+                  .map((time) => `M${Math.round(x(time)) + 0.5},${TOP}v${PLOT}`)
+                  .join('')}
+              />
             ))}
 
             {runs.map((run) => {
@@ -454,13 +472,17 @@ export function RunTimeline({
                 tabIndex: i === focusIndex ? 0 : -1,
                 role: 'img',
                 'aria-label': [item.title, ...item.lines].join(', '),
-                onPointerEnter: () => setActive(i),
-                onPointerLeave: () => setActive(null),
-                onFocus: () => {
-                  setFocusIndex(i)
-                  setActive(i)
+                onPointerEnter: () => {
+                  setByKeyboard(false)
+                  open(i)
                 },
-                onBlur: () => setActive(null),
+                onPointerLeave: closeSoon,
+                onFocus: (event: FocusEvent<SVGElement>) => {
+                  setByKeyboard(event.currentTarget.matches(':focus-visible'))
+                  setFocusIndex(i)
+                  open(i)
+                },
+                onBlur: close,
                 onKeyDown: (event: KeyboardEvent) => onKeyDown(event, i),
               }
               return item.shape.kind === 'circle' ? (
@@ -481,14 +503,14 @@ export function RunTimeline({
         </svg>
       )}
 
+      {/* Always above its mark, so it covers headings rather than the marks the pointer may
+          head for next */}
       {shown && (
         <div
-          className={`${tooltipBox} pointer-events-none absolute -translate-x-1/2 ${shown.y < 70 ? '' : '-translate-y-full'}`}
-          style={{
-            left: Math.min(Math.max(shown.x, 120), width - 120),
-            top: shown.y < 70 ? shown.y + 30 : shown.y,
-          }}
+          className={`${tooltipBox} absolute -translate-x-1/2 -translate-y-full`}
+          style={{ left: Math.min(Math.max(shown.x, 120), width - 120), top: shown.y }}
           aria-hidden="true"
+          {...hoverable}
         >
           <strong className="block text-sm text-ink">{shown.title}</strong>
           {shown.lines.map((line) => (
@@ -496,6 +518,7 @@ export function RunTimeline({
               {line}
             </span>
           ))}
+          {byKeyboard && <span className="mt-1 block">← → for the other marks</span>}
         </div>
       )}
     </div>

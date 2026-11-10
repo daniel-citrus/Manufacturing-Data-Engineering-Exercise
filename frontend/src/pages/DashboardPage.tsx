@@ -1,9 +1,10 @@
 import { useEffect, useId, useLayoutEffect, useRef, useState, type ReactNode } from 'react'
 import { AttainmentChart } from '../components/AttainmentChart'
+import { useOverflows } from '../components/hooks'
 import { RunTimeline, RunTimelineLegend } from '../components/RunTimeline'
 import { Button, LowestBadge, Page, PageHeader, tooltipBox } from '../components/ui'
 import { findLowestRun, useAnalysis, type Analysis, type Run } from '../data/analysis'
-import { useDatasets } from '../data/datasets'
+import { DATASETS, useDatasets } from '../data/datasets'
 import { formatCount, formatNumber, formatTime } from '../format'
 
 const QUARTER_HOUR = 15 * 60_000
@@ -144,7 +145,12 @@ const COLUMNS: { label: string; how: string; num?: boolean }[] = [
   { label: 'Attainment', how: '(Throughput ÷ target) × 100.', num: true },
 ]
 
-function ColumnHeader({ label, how, num }: (typeof COLUMNS)[number]) {
+function ColumnHeader({
+  label,
+  how,
+  num,
+  className = '',
+}: (typeof COLUMNS)[number] & { className?: string }) {
   const id = useId()
   const [open, setOpen] = useState(false)
   const cell = useRef<HTMLTableCellElement>(null)
@@ -177,7 +183,7 @@ function ColumnHeader({ label, how, num }: (typeof COLUMNS)[number]) {
     <th
       ref={cell}
       scope="col"
-      className={`px-3 py-2.5 align-bottom font-semibold text-ink ${num ? 'text-right' : 'text-left'}`}
+      className={`px-3 py-2.5 align-bottom font-semibold text-ink ${num ? 'text-right' : 'text-left'} ${className}`}
       onMouseEnter={() => setOpen(true)}
       onMouseLeave={() => setOpen(false)}
     >
@@ -208,15 +214,23 @@ function ColumnHeader({ label, how, num }: (typeof COLUMNS)[number]) {
 const CELL = 'px-3 py-2.5 align-top whitespace-nowrap'
 const NUM = `${CELL} text-right tabular-nums`
 const LIST = 'min-w-35 px-3 py-2.5 align-top text-[13px]'
+// While the table scrolls sideways, the Run column stays put so each row keeps its run.
+const PINNED = 'sticky left-0 shadow-[inset_-1px_0_0_var(--color-line)]'
 
 function RunMetricsTable({ analysis, lowest }: { analysis: Analysis | null; lowest: Run | undefined }) {
+  const [ref, overflows] = useOverflows<HTMLDivElement>()
+
   return (
-    <div className="overflow-x-auto border-t border-line">
+    <div ref={ref} className="overflow-x-auto border-t border-line">
       <table className="w-full text-sm">
         <thead className="border-b border-line bg-surface">
           <tr>
-            {COLUMNS.map((column) => (
-              <ColumnHeader key={column.label} {...column} />
+            {COLUMNS.map((column, i) => (
+              <ColumnHeader
+                key={column.label}
+                {...column}
+                className={overflows && i === 0 ? `${PINNED} bg-surface` : ''}
+              />
             ))}
           </tr>
         </thead>
@@ -225,8 +239,11 @@ function RunMetricsTable({ analysis, lowest }: { analysis: Analysis | null; lowe
             const readings = analysis.readings.filter((r) => r.run_id === run.run_id && r.used)
             const stops = analysis.events.filter((e) => e.run_id === run.run_id && e.used)
             return (
-              <tr key={run.run_id} className={run === lowest ? 'bg-accent-soft' : undefined}>
-                <th scope="row" className={`${CELL} text-left font-semibold text-ink`}>
+              <tr key={run.run_id} className={run === lowest ? 'bg-accent-soft' : 'bg-page'}>
+                <th
+                  scope="row"
+                  className={`${CELL} bg-inherit text-left font-semibold text-ink ${overflows ? PINNED : ''}`}
+                >
                   {run.run_id}
                   {run === lowest && <LowestBadge />}
                 </th>
@@ -272,6 +289,16 @@ function DashboardPage() {
   const machines = [...new Set(runs.map((run) => run.equipment_id))]
   const range = analysis && timeRange(analysis)
   const ofAll = (part: number, all: number) => (analysis ? `${part} of ${all}` : '—')
+  const busy = raw.busy || cleaned.busy
+  // A refresh can fail on another page's data, so its errors show here too.
+  const failures = [
+    { kind: 'raw', states: raw.states },
+    { kind: 'cleaned', states: cleaned.states },
+  ].flatMap(({ kind, states }) =>
+    (states ?? []).flatMap((state, i) =>
+      state.status === 'error' ? [`Couldn't load ${kind} ${DATASETS[i].name}: ${state.message}`] : [],
+    ),
+  )
 
   return (
     <Page>
@@ -282,7 +309,7 @@ function DashboardPage() {
             raw.load()
             cleaned.load()
           }}
-          disabled={raw.busy || cleaned.busy}
+          disabled={busy}
         >
           Refresh
         </Button>
@@ -301,6 +328,16 @@ function DashboardPage() {
           Download JSON
         </Button>
       </PageHeader>
+      {(busy || failures.length > 0) && (
+        <div className="mb-6 space-y-1 text-sm">
+          {busy && <p className="text-muted">Loading…</p>}
+          {failures.map((failure) => (
+            <p key={failure} className="text-accent" role="alert">
+              {failure}
+            </p>
+          ))}
+        </div>
+      )}
       <div className="flex flex-col gap-6">
         <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
           <Stat label="Completed runs" value={ofAll(completed.length, runs.length)} />

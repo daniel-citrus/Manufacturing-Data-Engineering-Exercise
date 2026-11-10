@@ -45,6 +45,8 @@ function enhanceCodeBlocks(root: HTMLElement) {
     wrap.className = 'readme-code-block'
     pre.replaceWith(wrap)
     wrap.append(pre)
+    // Long lines scroll sideways, so the block takes focus for the keyboard to scroll it.
+    pre.tabIndex = 0
     const copy = document.createElement('button')
     copy.type = 'button'
     copy.className = 'readme-copy'

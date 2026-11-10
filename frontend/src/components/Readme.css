@@ -22,8 +22,11 @@
   border-radius: 6px;
 }
 
-.readme-section > summary:hover {
-  background: var(--color-surface);
+/* Hover styles only where something can hover, so a tap doesn't leave them stuck on */
+@media (hover: hover) {
+  .readme-section > summary:hover {
+    background: var(--color-surface);
+  }
 }
 
 .readme-section > div {
@@ -124,12 +127,15 @@
   cursor: pointer;
 }
 
-.readme-copy:hover {
-  color: var(--color-ink);
-  border-color: var(--color-muted);
+@media (hover: hover) {
+  .readme-copy:hover {
+    color: var(--color-ink);
+    border-color: var(--color-muted);
+  }
 }
 
 .readme-copy:focus-visible,
+.readme pre:focus-visible,
 .readme summary:focus-visible {
   outline: 2px solid var(--color-ink);
   outline-offset: 2px;

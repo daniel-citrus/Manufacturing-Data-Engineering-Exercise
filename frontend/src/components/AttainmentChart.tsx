@@ -1,6 +1,6 @@
-import { useState, type KeyboardEvent } from 'react'
 import type { Run } from '../data/analysis'
 import { formatNumber } from '../format'
+import { useTooltip } from './hooks'
 import { LowestBadge, tooltipBox } from './ui'
 
 const GRID = [0, 25, 50, 75, 100]
@@ -14,7 +14,7 @@ export function AttainmentChart({
   runs: Run[]
   lowest: Run | undefined
 }) {
-  const [active, setActive] = useState<string | null>(null)
+  const { active, open, close, closeSoon, hoverable } = useTooltip<string>()
   const measured = runs
     .filter((run) => run.target_attainment_percent !== null)
     .toSorted(
@@ -33,25 +33,23 @@ export function AttainmentChart({
       tabIndex: 0,
       role: 'img',
       'aria-label': `${run.run_id}: ${percent === null ? 'not measured' : `${percent.toFixed(1)}% of target, attained ${attained(run)}`}, target ${run.target_rate_cases_per_hour} cases/h`,
-      onPointerEnter: () => setActive(run.run_id),
-      onPointerLeave: () => setActive(null),
-      onFocus: () => setActive(run.run_id),
-      onBlur: () => setActive(null),
-      onKeyDown: (event: KeyboardEvent) => {
-        if (event.key === 'Escape') setActive(null)
-      },
+      onPointerEnter: () => open(run.run_id),
+      onPointerLeave: closeSoon,
+      onFocus: () => open(run.run_id),
+      onBlur: close,
     }
   }
 
   // Opens to the right only from short bars: the bar column leaves little room on the right,
-  // most of all on a phone. Sits above the bar's end.
+  // most of all on a phone. Sits right on top of the hit area, so the pointer can move onto it.
   function tooltip(run: Run, percent: number) {
     if (active !== run.run_id) return null
     return (
       <div
-        className={`${tooltipBox} pointer-events-none absolute -top-2 -translate-y-full ${percent / max > 1 / 3 ? 'translate-x-[calc(-100%+12px)]' : '-translate-x-3'}`}
+        className={`${tooltipBox} absolute -top-[7px] -translate-y-full ${percent / max > 1 / 3 ? 'translate-x-[calc(-100%+12px)]' : '-translate-x-3'}`}
         style={{ left: at(percent) }}
         aria-hidden="true"
+        {...hoverable}
       >
         <strong className="block text-sm text-ink">{run.run_id}</strong>
         <dl className="mt-1 grid grid-cols-[auto_auto] gap-x-4 gap-y-0.5">
