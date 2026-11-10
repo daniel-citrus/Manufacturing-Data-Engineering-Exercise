@@ -1,11 +1,10 @@
-import { useEffect, useId, useLayoutEffect, useRef, useState } from 'react'
+import { useEffect, useId, useLayoutEffect, useRef, useState, type ReactNode } from 'react'
 import { AttainmentChart } from '../components/AttainmentChart'
-import { RunTimeline } from '../components/RunTimeline'
+import { RunTimeline, RunTimelineLegend } from '../components/RunTimeline'
+import { Button, LowestBadge, Page, PageHeader, tooltipBox } from '../components/ui'
 import { findLowestRun, useAnalysis, type Analysis, type Run } from '../data/analysis'
 import { useDatasets } from '../data/datasets'
 import { formatCount, formatNumber, formatTime } from '../format'
-import '../App.css'
-import '../components/Dashboard.css'
 
 const QUARTER_HOUR = 15 * 60_000
 
@@ -78,54 +77,38 @@ function timeRange({ runs, readings, events }: Analysis) {
 
 function Stat({ label, value }: { label: string; value: string }) {
   return (
-    <div className="stat">
-      <p className="stat-label">{label}</p>
-      <p className="stat-value">{value}</p>
+    <div className="rounded-xl border border-line bg-surface px-4 py-3.5 sm:px-5 sm:py-4">
+      <p className="text-[13px] text-muted">{label}</p>
+      <p className="mt-0.5 text-2xl font-semibold tracking-tight text-ink tabular-nums sm:text-[1.75rem]">
+        {value}
+      </p>
     </div>
   )
 }
 
-function Legend() {
+// A bordered section with its heading. Flush content, like a table, runs to the border and is
+// clipped to its corners; other content isn't clipped, so chart tooltips can spill out.
+function Card({
+  id,
+  title,
+  flush = false,
+  children,
+}: {
+  id: string
+  title: string
+  flush?: boolean
+  children: ReactNode
+}) {
   return (
-    <ul className="legend">
-      <li>
-        <svg width="24" height="12" aria-hidden="true">
-          <line className="timeline-count" x1="2" x2="22" y1="6" y2="6" />
-          <circle className="timeline-reading" cx="12" cy="6" r="4" />
-        </svg>
-        Counted reading
-      </li>
-      <li>
-        <svg width="12" height="12" aria-hidden="true">
-          <circle className="timeline-reading is-unused" cx="6" cy="6" r="4" />
-        </svg>
-        Reading not used
-      </li>
-      <li>
-        <svg width="12" height="12" aria-hidden="true">
-          <path className="timeline-no-count" d="M2,2l8,8m0,-8l-8,8" />
-        </svg>
-        Count isn't a number
-      </li>
-      <li>
-        <svg width="20" height="12" aria-hidden="true">
-          <rect className="timeline-stop" x="1" y="1" width="18" height="10" rx="2" />
-        </svg>
-        Downtime counted
-      </li>
-      <li>
-        <svg width="20" height="12" aria-hidden="true">
-          <rect className="timeline-stop is-unused" x="1" y="1" width="18" height="10" rx="2" />
-        </svg>
-        Downtime not counted
-      </li>
-      <li>
-        <svg width="20" height="12" aria-hidden="true">
-          <rect className="timeline-run legend-run" x="0.5" y="0.5" width="19" height="11" />
-        </svg>
-        Run
-      </li>
-    </ul>
+    <section
+      className={`min-w-0 rounded-xl border border-line ${flush ? 'overflow-hidden' : 'p-5'}`}
+      aria-labelledby={id}
+    >
+      <h2 id={id} className={`text-lg font-semibold text-ink ${flush ? 'px-5 py-4' : 'mb-3'}`}>
+        {title}
+      </h2>
+      {children}
+    </section>
   )
 }
 
@@ -152,13 +135,13 @@ const COLUMNS: { label: string; how: string; num?: boolean }[] = [
   { label: 'Elapsed (min)', how: 'Run end − run start.', num: true },
   { label: 'Downtime (min)', how: "Sum of the run's stops counted.", num: true },
   { label: 'Operating (min)', how: 'Elapsed − downtime.', num: true },
-  { label: 'Throughput (cases/h)', how: 'Cases ÷ operating minutes × 60.', num: true },
+  { label: 'Throughput (cases/h)', how: '(Cases ÷ operating minutes) × 60.', num: true },
   {
     label: 'Target (cases/h)',
     how: "The run's target rate. Rates given per minute are multiplied by 60.",
     num: true,
   },
-  { label: 'Attainment', how: 'Throughput ÷ target × 100.', num: true },
+  { label: 'Attainment', how: '(Throughput ÷ target) × 100.', num: true },
 ]
 
 function ColumnHeader({ label, how, num }: (typeof COLUMNS)[number]) {
@@ -194,12 +177,12 @@ function ColumnHeader({ label, how, num }: (typeof COLUMNS)[number]) {
     <th
       ref={cell}
       scope="col"
-      className={num ? 'num' : undefined}
+      className={`px-3 py-2.5 align-bottom font-semibold text-ink ${num ? 'text-right' : 'text-left'}`}
       onMouseEnter={() => setOpen(true)}
       onMouseLeave={() => setOpen(false)}
     >
       <span
-        className="column-name"
+        className="cursor-help rounded-xs underline decoration-muted decoration-dotted underline-offset-3 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink"
         tabIndex={0}
         aria-describedby={id}
         onFocus={() => setOpen(true)}
@@ -207,52 +190,62 @@ function ColumnHeader({ label, how, num }: (typeof COLUMNS)[number]) {
       >
         {label}
       </span>
-      <span ref={tip} id={id} role="tooltip" className="chart-tooltip column-tip" hidden={!open}>
+      {/* Placed from script, flush under its header so the pointer can move onto it */}
+      <span
+        ref={tip}
+        id={id}
+        role="tooltip"
+        className={`${tooltipBox} fixed text-left font-normal whitespace-normal`}
+        hidden={!open}
+      >
         {how}
       </span>
     </th>
   )
 }
 
+// Values stay on one line (FLOUR-A would otherwise break at the hyphen); the lists of IDs wrap.
+const CELL = 'px-3 py-2.5 align-top whitespace-nowrap'
+const NUM = `${CELL} text-right tabular-nums`
+const LIST = 'min-w-35 px-3 py-2.5 align-top text-[13px]'
+
 function RunMetricsTable({ analysis, lowest }: { analysis: Analysis | null; lowest: Run | undefined }) {
   return (
-    <div className="table-wrap">
-      <table>
-        <thead>
+    <div className="overflow-x-auto border-t border-line">
+      <table className="w-full text-sm">
+        <thead className="border-b border-line bg-surface">
           <tr>
             {COLUMNS.map((column) => (
               <ColumnHeader key={column.label} {...column} />
             ))}
           </tr>
         </thead>
-        <tbody>
+        <tbody className="divide-y divide-line">
           {analysis?.runs.map((run) => {
             const readings = analysis.readings.filter((r) => r.run_id === run.run_id && r.used)
             const stops = analysis.events.filter((e) => e.run_id === run.run_id && e.used)
             return (
-              <tr key={run.run_id} className={run === lowest ? 'lowest' : undefined}>
-                <th scope="row">
+              <tr key={run.run_id} className={run === lowest ? 'bg-accent-soft' : undefined}>
+                <th scope="row" className={`${CELL} text-left font-semibold text-ink`}>
                   {run.run_id}
-                  {run === lowest && <span className="badge">Lowest</span>}
+                  {run === lowest && <LowestBadge />}
                 </th>
-                <td>{runWindow(run)}</td>
-                <td className="list">
-                  {readings.map((r) => r.reading_id).join(', ') || '—'}
-                </td>
-                <td className="list">
+                <td className={CELL}>{runWindow(run)}</td>
+                <td className={LIST}>{readings.map((r) => r.reading_id).join(', ') || '—'}</td>
+                <td className={LIST}>
                   {stops
                     .map((e) => `${e.event_id} ${formatNumber(e.minutes_counted)}`)
                     .join(', ') || '—'}
                 </td>
-                <td className="num">
+                <td className={NUM}>
                   {run.cases_produced === null ? '—' : formatCount(run.cases_produced)}
                 </td>
-                <td className="num">{formatNumber(run.elapsed_minutes)}</td>
-                <td className="num">{formatNumber(run.downtime_minutes)}</td>
-                <td className="num">{formatNumber(run.operating_minutes)}</td>
-                <td className="num">{formatNumber(run.operating_throughput_cph)}</td>
-                <td className="num">{run.target_rate_cases_per_hour}</td>
-                <td className="num">
+                <td className={NUM}>{formatNumber(run.elapsed_minutes)}</td>
+                <td className={NUM}>{formatNumber(run.downtime_minutes)}</td>
+                <td className={NUM}>{formatNumber(run.operating_minutes)}</td>
+                <td className={NUM}>{formatNumber(run.operating_throughput_cph)}</td>
+                <td className={NUM}>{run.target_rate_cases_per_hour}</td>
+                <td className={NUM}>
                   {run.target_attainment_percent === null
                     ? '—'
                     : `${run.target_attainment_percent.toFixed(1)}%`}
@@ -281,12 +274,10 @@ function DashboardPage() {
   const ofAll = (part: number, all: number) => (analysis ? `${part} of ${all}` : '—')
 
   return (
-    <main className="dashboard">
-      <h1>Dashboard</h1>
-      {/* Pulls and cleans again into the Raw data and Cleaned data pages, which this page reads */}
-      <p className="data-actions">
-        <button
-          type="button"
+    <Page>
+      <PageHeader title="Dashboard">
+        {/* Pulls and cleans again into the Raw data and Cleaned data pages, which this page reads */}
+        <Button
           onClick={() => {
             raw.load()
             cleaned.load()
@@ -294,26 +285,24 @@ function DashboardPage() {
           disabled={raw.busy || cleaned.busy}
         >
           Refresh
-        </button>
-        <button
-          type="button"
+        </Button>
+        <Button
           onClick={() => download('run_metrics.csv', 'text/csv', toCsv(runs))}
           disabled={!analysis}
         >
           Download CSV
-        </button>
-        <button
-          type="button"
+        </Button>
+        <Button
           onClick={() =>
             download('run_metrics.json', 'application/json', JSON.stringify(resultRows(runs), null, 2) + '\n')
           }
           disabled={!analysis}
         >
           Download JSON
-        </button>
-      </p>
-      <div className="dashboard-body">
-        <div className="stats">
+        </Button>
+      </PageHeader>
+      <div className="flex flex-col gap-6">
+        <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
           <Stat label="Completed runs" value={ofAll(completed.length, runs.length)} />
           <Stat
             label="Readings matched"
@@ -333,20 +322,18 @@ function DashboardPage() {
           />
         </div>
 
-        <section className="card" aria-labelledby="attainment-heading">
-          <h2 id="attainment-heading">Target attainment</h2>
+        <Card id="attainment-heading" title="Target attainment">
           <AttainmentChart runs={runs} lowest={lowest} />
-        </section>
+        </Card>
 
-        <section className="card" aria-labelledby="timeline-heading">
-          <h2 id="timeline-heading">Readings and stops by run</h2>
-          <Legend />
+        <Card id="timeline-heading" title="Readings and stops by run">
+          <RunTimelineLegend />
           {machines.length === 0 && (
             <RunTimeline machine="No data" runs={[]} readings={[]} events={[]} range={null} lowest={undefined} />
           )}
           {machines.map((machine) => (
-            <div key={machine} className="timeline-machine">
-              <h3>{machine}</h3>
+            <div key={machine}>
+              <h3 className="mt-4 mb-2 text-[15px] font-semibold text-ink">{machine}</h3>
               <RunTimeline
                 machine={machine}
                 runs={runs.filter((run) => run.equipment_id === machine)}
@@ -357,14 +344,13 @@ function DashboardPage() {
               />
             </div>
           ))}
-        </section>
+        </Card>
 
-        <section aria-labelledby="metrics-heading">
-          <h2 id="metrics-heading">Run metrics</h2>
+        <Card id="metrics-heading" title="Run metrics" flush>
           <RunMetricsTable analysis={analysis} lowest={lowest} />
-        </section>
+        </Card>
       </div>
-    </main>
+    </Page>
   )
 }
 

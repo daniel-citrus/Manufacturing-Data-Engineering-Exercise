@@ -7,7 +7,20 @@ import {
 } from 'react'
 import type { MatchedEvent, MatchedReading, Run } from '../data/analysis'
 import { formatCount, formatNumber, formatTime } from '../format'
-import './Dashboard.css'
+import { tooltipBox } from './ui'
+
+// How each kind of mark looks, in the chart and in its legend
+const MARK = {
+  run: 'fill-surface',
+  count: 'fill-none stroke-chart-count stroke-2 [stroke-linecap:round] [stroke-linejoin:round]',
+  reading: 'fill-chart-count stroke-page stroke-2',
+  readingUnused: 'fill-page stroke-muted stroke-[1.5]',
+  noCount: 'fill-none stroke-muted stroke-2 [stroke-linecap:round]',
+  stop: 'fill-chart-stop',
+  stopUnused: 'fill-none stroke-chart-stop stroke-[1.5]',
+}
+
+const AXIS_TEXT = 'fill-muted text-[11px] tabular-nums'
 
 // Layout, in pixels. Run names sit above the plot; the "No count" row and the stop lanes sit below it.
 const LEFT = 64
@@ -84,6 +97,50 @@ function stopTitle(event: MatchedEvent) {
   return total !== null && formatNumber(total) !== counted
     ? `${counted} of ${formatNumber(total)} min counted`
     : `${counted} min counted`
+}
+
+export function RunTimelineLegend() {
+  return (
+    <ul className="mb-2 flex flex-wrap gap-x-5 gap-y-2 text-[13px]">
+      <li className="flex items-center gap-1.5">
+        <svg width="24" height="12" aria-hidden="true">
+          <line className={MARK.count} x1="2" x2="22" y1="6" y2="6" />
+          <circle className={MARK.reading} cx="12" cy="6" r="4" />
+        </svg>
+        Counted reading
+      </li>
+      <li className="flex items-center gap-1.5">
+        <svg width="12" height="12" aria-hidden="true">
+          <circle className={MARK.readingUnused} cx="6" cy="6" r="4" />
+        </svg>
+        Reading not used
+      </li>
+      <li className="flex items-center gap-1.5">
+        <svg width="12" height="12" aria-hidden="true">
+          <path className={MARK.noCount} d="M2,2l8,8m0,-8l-8,8" />
+        </svg>
+        Count isn't a number
+      </li>
+      <li className="flex items-center gap-1.5">
+        <svg width="20" height="12" aria-hidden="true">
+          <rect className={MARK.stop} x="1" y="1" width="18" height="10" rx="2" />
+        </svg>
+        Downtime counted
+      </li>
+      <li className="flex items-center gap-1.5">
+        <svg width="20" height="12" aria-hidden="true">
+          <rect className={MARK.stopUnused} x="1" y="1" width="18" height="10" rx="2" />
+        </svg>
+        Downtime not counted
+      </li>
+      <li className="flex items-center gap-1.5">
+        <svg width="20" height="12" aria-hidden="true">
+          <rect className={`${MARK.run} stroke-line`} x="0.5" y="0.5" width="19" height="11" />
+        </svg>
+        Run
+      </li>
+    </ul>
+  )
 }
 
 export function RunTimeline({
@@ -230,9 +287,10 @@ export function RunTimeline({
   const showLabels = plotWidth >= LABEL_WIDTH
 
   return (
-    <div className="timeline" ref={ref}>
+    <div className="relative" ref={ref}>
       {width > 0 && (
         <svg
+          className="overflow-visible"
           width={width}
           height={height}
           role="group"
@@ -242,12 +300,12 @@ export function RunTimeline({
             {/* A run or stop with no end fades out instead of stopping at the edge. Set as a style,
                 since the classes' fill would override a fill attribute. */}
             <linearGradient id={`${id}-run`}>
-              <stop offset="0.5" className="timeline-fade-run" />
-              <stop offset="1" className="timeline-fade-run" stopOpacity="0" />
+              <stop offset="0.5" className="[stop-color:var(--color-surface)]" />
+              <stop offset="1" className="[stop-color:var(--color-surface)]" stopOpacity="0" />
             </linearGradient>
             <linearGradient id={`${id}-stop`}>
-              <stop offset="0.3" className="timeline-fade-stop" />
-              <stop offset="1" className="timeline-fade-stop" stopOpacity="0" />
+              <stop offset="0.3" className="[stop-color:var(--color-chart-stop)]" />
+              <stop offset="1" className="[stop-color:var(--color-chart-stop)]" stopOpacity="0" />
             </linearGradient>
           </defs>
 
@@ -255,7 +313,7 @@ export function RunTimeline({
             {runs.map((run) => (
               <rect
                 key={run.run_id}
-                className="timeline-run"
+                className={MARK.run}
                 x={x(run.run_start)}
                 y={TOP}
                 width={x(run.run_end) - x(run.run_start)}
@@ -266,7 +324,7 @@ export function RunTimeline({
             {events.map((event) => (
               <rect
                 key={event.event_id}
-                className="timeline-stop-wash"
+                className="fill-chart-stop opacity-[0.14]"
                 x={x(event.start_time)}
                 y={TOP}
                 width={Math.max(1, x(event.end_time) - x(event.start_time))}
@@ -277,14 +335,14 @@ export function RunTimeline({
             {yTicks.map((tick) => (
               <g key={tick}>
                 <line
-                  className={tick === 0 ? 'timeline-baseline' : 'timeline-grid'}
+                  className={tick === 0 ? 'stroke-muted stroke-1 opacity-50' : 'stroke-line stroke-1'}
                   x1={LEFT}
                   x2={width - RIGHT}
                   y1={y(tick)}
                   y2={y(tick)}
                 />
                 {range && (
-                  <text className="timeline-axis" x={LEFT - 8} y={y(tick)} textAnchor="end" dominantBaseline="middle">
+                  <text className={AXIS_TEXT} x={LEFT - 8} y={y(tick)} textAnchor="end" dominantBaseline="middle">
                     {compact(tick)}
                   </text>
                 )}
@@ -296,9 +354,9 @@ export function RunTimeline({
               const room = x(run.run_end) - x0 - 8
               const extra = run === lowest ? ' · Lowest' : run.run_end ? '' : ' · no end'
               return (
-                <text key={run.run_id} className="timeline-run-name" x={x0 + 4} y={TOP - 10}>
+                <text key={run.run_id} className="fill-ink text-xs font-semibold" x={x0 + 4} y={TOP - 10}>
                   {run.run_id}
-                  {extra && room >= 90 && <tspan className="timeline-run-extra">{extra}</tspan>}
+                  {extra && room >= 90 && <tspan className="fill-muted font-normal">{extra}</tspan>}
                 </text>
               )
             })}
@@ -311,7 +369,7 @@ export function RunTimeline({
               const path = used
                 .map((r, i) => `${i ? 'L' : 'M'}${x(r.recorded_at)},${y(r.count as number)}`)
                 .join('')
-              return <path key={run.run_id} className="timeline-count" d={path} />
+              return <path key={run.run_id} className={MARK.count} d={path} />
             })}
 
             {groups.map((group) => {
@@ -321,7 +379,7 @@ export function RunTimeline({
               const unused = group.filter((r) => !r.used).map((r) => r.reading_id)
               const label = showLabels && unused.length > 0 && (
                 <text
-                  className="timeline-label"
+                  className="fill-muted text-[11px]"
                   x={typeof first.count === 'number' ? cx : cx + 9}
                   y={typeof first.count === 'number' ? cy - 10 : cy}
                   textAnchor={typeof first.count === 'number' ? 'middle' : 'start'}
@@ -333,7 +391,7 @@ export function RunTimeline({
               if (typeof first.count !== 'number') {
                 return (
                   <g key={first.reading_id}>
-                    <path className="timeline-no-count" d={`M${cx - 4},${cy - 4}l8,8m0,-8l-8,8`} />
+                    <path className={MARK.noCount} d={`M${cx - 4},${cy - 4}l8,8m0,-8l-8,8`} />
                     {label}
                   </g>
                 )
@@ -341,7 +399,7 @@ export function RunTimeline({
               return (
                 <g key={first.reading_id}>
                   <circle
-                    className={group.some((r) => r.used) ? 'timeline-reading' : 'timeline-reading is-unused'}
+                    className={group.some((r) => r.used) ? MARK.reading : MARK.readingUnused}
                     cx={cx}
                     cy={cy}
                     r={4}
@@ -352,18 +410,18 @@ export function RunTimeline({
             })}
 
             {noCountRow && (
-              <text className="timeline-axis" x={LEFT - 8} y={noCountY} textAnchor="end" dominantBaseline="middle">
+              <text className={AXIS_TEXT} x={LEFT - 8} y={noCountY} textAnchor="end" dominantBaseline="middle">
                 No count
               </text>
             )}
-            <line className="timeline-grid" x1={LEFT} x2={width - RIGHT} y1={lanesTop} y2={lanesTop} />
-            <text className="timeline-axis" x={LEFT - 8} y={laneY(0)} textAnchor="end" dominantBaseline="middle">
+            <line className="stroke-line stroke-1" x1={LEFT} x2={width - RIGHT} y1={lanesTop} y2={lanesTop} />
+            <text className={AXIS_TEXT} x={LEFT - 8} y={laneY(0)} textAnchor="end" dominantBaseline="middle">
               Stops
             </text>
             {events.map((event, i) => (
               <rect
                 key={event.event_id}
-                className={event.used ? 'timeline-stop' : 'timeline-stop is-unused'}
+                className={event.used ? MARK.stop : MARK.stopUnused}
                 x={x(event.start_time)}
                 y={laneY(lanes[i]) - 5}
                 width={Math.max(3, x(event.end_time) - x(event.start_time))}
@@ -376,7 +434,7 @@ export function RunTimeline({
             {xTicks.map((tick) => (
               <text
                 key={tick}
-                className="timeline-axis"
+                className={AXIS_TEXT}
                 x={x(new Date(tick).toISOString())}
                 y={height - 6}
                 textAnchor="middle"
@@ -392,7 +450,7 @@ export function RunTimeline({
                 ref: (el: SVGElement | null) => {
                   hits.current[i] = el
                 },
-                className: active === i ? 'timeline-hit is-active' : 'timeline-hit',
+                className: `fill-transparent outline-none focus-visible:stroke-ink focus-visible:stroke-2 ${active === i ? 'stroke-ink stroke-1' : 'stroke-none'}`,
                 tabIndex: i === focusIndex ? 0 : -1,
                 role: 'img',
                 'aria-label': [item.title, ...item.lines].join(', '),
@@ -425,16 +483,18 @@ export function RunTimeline({
 
       {shown && (
         <div
-          className={shown.y < 70 ? 'chart-tooltip is-below' : 'chart-tooltip'}
+          className={`${tooltipBox} pointer-events-none absolute -translate-x-1/2 ${shown.y < 70 ? '' : '-translate-y-full'}`}
           style={{
             left: Math.min(Math.max(shown.x, 120), width - 120),
             top: shown.y < 70 ? shown.y + 30 : shown.y,
           }}
           aria-hidden="true"
         >
-          <strong>{shown.title}</strong>
+          <strong className="block text-sm text-ink">{shown.title}</strong>
           {shown.lines.map((line) => (
-            <span key={line}>{line}</span>
+            <span key={line} className="block">
+              {line}
+            </span>
           ))}
         </div>
       )}

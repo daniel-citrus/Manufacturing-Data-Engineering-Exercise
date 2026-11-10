@@ -1,5 +1,6 @@
-/* The README page: Markdown rendered as HTML. Blocks keep a readable line length and line up
-   with the other pages. */
+/* The README page: Markdown rendered as HTML, which utility classes can't reach, so it's styled
+   here with the theme's colors. Tailwind's reset clears the browser's list markers, link
+   underlines and heading sizes, so they're set again. Blocks keep a readable line length. */
 .readme > * {
   max-width: 860px;
 }
@@ -8,7 +9,7 @@
 .readme-section {
   margin-top: 4px;
   padding-top: 4px;
-  border-top: 1px solid var(--border);
+  border-top: 1px solid var(--color-line);
 }
 
 .readme-section:first-of-type {
@@ -22,7 +23,7 @@
 }
 
 .readme-section > summary:hover {
-  background: var(--surface);
+  background: var(--color-surface);
 }
 
 .readme-section > div {
@@ -35,19 +36,22 @@
 
 .readme h1 {
   margin-bottom: 16px;
+  font-size: 1.75rem;
+  line-height: 1.25;
+  font-weight: 600;
+  letter-spacing: -0.025em;
+  color: var(--color-ink);
 }
 
 .readme h2 {
-  margin: 0;
   font-size: 18px;
   font-weight: 600;
-  color: var(--text-h);
+  color: var(--color-ink);
 }
 
 .readme p,
 .readme ul,
 .readme ol,
-.readme pre,
 .readme-code-block,
 .readme table,
 .readme details:not(.readme-section) {
@@ -59,23 +63,32 @@
   padding-left: 24px;
 }
 
+.readme ul {
+  list-style: disc;
+}
+
+.readme ol {
+  list-style: decimal;
+}
+
 .readme li + li {
   margin-top: 4px;
 }
 
 .readme a {
-  color: var(--text-h);
+  color: var(--color-ink);
+  text-decoration: underline;
+  text-underline-offset: 2px;
 }
 
 .readme strong {
-  color: var(--text-h);
+  color: var(--color-ink);
 }
 
 .readme code {
   padding: 1px 5px;
   border-radius: 4px;
-  background: var(--surface);
-  font-family: ui-monospace, 'SF Mono', Menlo, Consolas, monospace;
+  background: var(--color-surface);
   font-size: 0.875em;
 }
 
@@ -83,17 +96,17 @@
   position: relative;
 }
 
-.readme-code-block pre {
-  margin: 0;
+.readme pre {
+  padding: 40px 16px 12px;
+  border: 1px solid var(--color-line);
+  border-radius: 8px;
+  background: var(--color-surface);
+  overflow-x: auto;
 }
 
-.readme pre {
-  padding: 12px 16px;
-  padding-top: 40px;
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  background: var(--surface);
-  overflow-x: auto;
+.readme pre code {
+  padding: 0;
+  background: none;
 }
 
 .readme-copy {
@@ -102,40 +115,48 @@
   right: 8px;
   z-index: 1;
   padding: 4px 10px;
-  border: 1px solid var(--border);
+  border: 1px solid var(--color-line);
   border-radius: 6px;
-  background: var(--bg);
-  color: var(--text-muted);
-  font: inherit;
+  background: var(--color-page);
+  color: var(--color-muted);
   font-size: 13px;
   line-height: 1.2;
   cursor: pointer;
 }
 
 .readme-copy:hover {
-  color: var(--text-h);
-  border-color: var(--text-muted);
+  color: var(--color-ink);
+  border-color: var(--color-muted);
 }
 
-.readme-copy:focus-visible {
-  outline: 2px solid var(--text-h);
+.readme-copy:focus-visible,
+.readme summary:focus-visible {
+  outline: 2px solid var(--color-ink);
   outline-offset: 2px;
 }
 
-.readme pre code {
-  padding: 0;
-  background: none;
+/* Tables, should the README gain one */
+.readme table {
+  font-size: 14px;
 }
 
-/* Sentences wrap, unlike the data cells elsewhere */
+.readme th,
 .readme td {
-  white-space: normal;
+  padding: 8px 12px;
+  text-align: left;
+  vertical-align: top;
+  border-bottom: 1px solid var(--color-line);
+}
+
+.readme th {
+  color: var(--color-ink);
+  font-weight: 600;
 }
 
 /* Dropdowns written in the README itself, like the Docker install steps */
 .readme details:not(.readme-section) {
   padding: 12px 16px;
-  border: 1px solid var(--border);
+  border: 1px solid var(--color-line);
   border-radius: 8px;
 }
 
@@ -146,20 +167,11 @@
   list-style: none;
   cursor: pointer;
   font-weight: 600;
-  color: var(--text-h);
-}
-
-.readme summary:focus-visible {
-  outline: 2px solid var(--text-h);
-  outline-offset: 2px;
+  color: var(--color-ink);
 }
 
 .readme summary::-webkit-details-marker {
   display: none;
-}
-
-.readme summary::marker {
-  content: '';
 }
 
 /* A chevron that points right when closed and down when open */
@@ -168,8 +180,8 @@
   flex: none;
   width: 6px;
   height: 6px;
-  border-right: 2px solid var(--text-muted);
-  border-bottom: 2px solid var(--text-muted);
+  border-right: 2px solid var(--color-muted);
+  border-bottom: 2px solid var(--color-muted);
   transform: rotate(-45deg);
   transition: transform 150ms ease-out;
 }

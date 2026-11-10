@@ -1,51 +1,52 @@
-:root {
-  --text: #4b4652;
-  --text-h: #08060d;
-  --text-muted: #6b6375;
-  --bg: #fff;
-  --surface: #f7f6f9;
-  --border: #e5e4e7;
-  --accent: #b42318;
-  --accent-bg: #fdecea;
+@import 'tailwindcss';
 
-  --sans: system-ui, 'Segoe UI', Roboto, sans-serif;
+/* The only colors the app uses, so every utility stays on the palette. Chart colors are checked
+   for colorblind separation and 3:1 contrast on the page in both modes. */
+@theme {
+  --color-*: initial;
+  --color-ink: #08060d;
+  --color-body: #4b4652;
+  --color-muted: #6b6375;
+  --color-page: #fff;
+  --color-surface: #f7f6f9;
+  --color-line: #e5e4e7;
+  --color-accent: #b42318;
+  --color-accent-soft: #fdecea;
+  --color-chart-count: #2a78d6;
+  --color-chart-stop: #eb6834;
+  --color-chart-bar: #8f8a96;
 
-  font: 16px/1.5 var(--sans);
-  color-scheme: light dark;
-  color: var(--text);
-  background: var(--bg);
-  font-synthesis: none;
-  text-rendering: optimizeLegibility;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
+  --font-sans: system-ui, 'Segoe UI', Roboto, sans-serif;
+  --font-mono: ui-monospace, 'SF Mono', Menlo, Consolas, monospace;
 }
 
-@media (prefers-color-scheme: dark) {
+@layer base {
   :root {
-    --text: #c9cdd4;
-    --text-h: #f3f4f6;
-    --text-muted: #9ca3af;
-    --bg: #16171d;
-    --surface: #1f2028;
-    --border: #2e303a;
-    --accent: #ff8a80;
-    --accent-bg: #3a1d1d;
+    color-scheme: light dark;
+    font-synthesis: none;
+    text-rendering: optimizeLegibility;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
   }
-}
 
-body {
-  margin: 0;
-  background: var(--bg);
-}
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --color-ink: #f3f4f6;
+      --color-body: #c9cdd4;
+      --color-muted: #9ca3af;
+      --color-page: #16171d;
+      --color-surface: #1f2028;
+      --color-line: #2e303a;
+      --color-accent: #ff8a80;
+      --color-accent-soft: #3a1d1d;
+      --color-chart-count: #3987e5;
+      --color-chart-stop: #d95926;
+      --color-chart-bar: #6b6e7a;
+    }
+  }
 
-h1 {
-  font-size: 28px;
-  font-weight: 600;
-  letter-spacing: -0.4px;
-  color: var(--text-h);
-  margin: 0 0 4px;
-}
-
-p {
-  margin: 0;
+  body {
+    background: var(--color-page);
+    color: var(--color-body);
+  }
 }

@@ -1,6 +1,4 @@
 import type { DataRecord, Dataset, Loaded } from '../data/datasets'
-import '../App.css'
-import './DataTable.css'
 
 export function DatasetSection({
   dataset,
@@ -9,62 +7,63 @@ export function DatasetSection({
   dataset: Dataset
   state: Loaded
 }) {
+  const count = state.status === 'ready' ? state.records.length : null
+
   return (
-    <section className="data-section">
-      <h2>{dataset.title}</h2>
-      <p className="subtitle">{dataset.description}</p>
-      {state.status === 'loading' && <p className="status">Loading…</p>}
+    <section>
+      <div className="mb-3 flex flex-wrap items-end justify-between gap-x-6 gap-y-1">
+        <div>
+          <h2 className="text-lg font-semibold text-ink">{dataset.title}</h2>
+          <p className="text-sm text-muted">{dataset.description}</p>
+        </div>
+        {count !== null && (
+          <p className="text-sm text-muted tabular-nums">
+            {count} {count === 1 ? 'record' : 'records'}
+          </p>
+        )}
+      </div>
+      {state.status === 'loading' && <p className="text-sm text-muted">Loading…</p>}
       {state.status === 'error' && (
-        <p className="status data-error" role="alert">
+        <p className="text-sm text-accent" role="alert">
           Couldn't load {dataset.name}: {state.message}
         </p>
       )}
-      {state.status === 'ready' && (
-        <DataTable records={state.records} count={state.records.length} />
-      )}
+      {state.status === 'ready' && <DataTable records={state.records} />}
     </section>
   )
 }
 
-function DataTable({
-  records,
-  count,
-}: {
-  records: DataRecord[]
-  count: number
-}) {
+// Values are shown as JSON, spaces and all, so text and numbers look different.
+const CELL = 'px-3 py-2 text-left align-top font-mono text-[13px] whitespace-pre'
+
+function DataTable({ records }: { records: DataRecord[] }) {
   const columns = [...new Set(records.flatMap((record) => Object.keys(record)))]
 
   return (
-    <>
-      <p className="status">
-        {count} {count === 1 ? 'record' : 'records'}
-      </p>
-      <div className="table-wrap">
-        <table className="data-table">
-          <thead>
-            <tr>
+    <div className="overflow-x-auto rounded-xl border border-line">
+      <table className="w-full">
+        <thead className="border-b border-line bg-surface">
+          <tr>
+            {columns.map((column) => (
+              <th key={column} scope="col" className={`${CELL} align-bottom font-semibold text-ink`}>
+                {column}
+              </th>
+            ))}
+          </tr>
+        </thead>
+        <tbody className="divide-y divide-line">
+          {records.map((record, index) => (
+            <tr key={index} className="hover:bg-surface/60">
               {columns.map((column) => (
-                <th key={column} scope="col">
-                  {column}
-                </th>
+                <td key={column} className={CELL}>
+                  {column in record ? JSON.stringify(record[column]) : ''}
+                </td>
               ))}
             </tr>
-          </thead>
-          <tbody>
-            {records.map((record, index) => (
-              <tr key={index}>
-                {columns.map((column) => (
-                  <td key={column}>
-                    {column in record ? JSON.stringify(record[column]) : ''}
-                  </td>
-                ))}
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-    </>
+          ))}
+        </tbody>
+      </table>
+    </div>
   )
 }
 

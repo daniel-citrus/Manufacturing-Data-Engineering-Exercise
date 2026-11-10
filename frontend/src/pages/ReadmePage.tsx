@@ -1,7 +1,7 @@
 import { Marked } from 'marked'
 import { useEffect, useMemo, useRef } from 'react'
+import { Page } from '../components/ui'
 import { useReadme } from '../data/readme'
-import '../App.css'
 import '../components/Readme.css'
 
 const REPO_FILES = 'https://github.com/daniel-citrus/Manufacturing-Data-Engineering-Exercise/blob/HEAD/'
@@ -92,23 +92,23 @@ function ReadmePage() {
 
   if (error) {
     return (
-      <main>
-        <p className="status" role="alert">
+      <Page>
+        <p className="text-muted" role="alert">
           Couldn't load the README ({error}).
         </p>
-      </main>
+      </Page>
     )
   }
   if (sections === null) {
     return (
-      <main>
-        <p className="status">Loading…</p>
-      </main>
+      <Page>
+        <p className="text-muted">Loading…</p>
+      </Page>
     )
   }
   // The README is this repo's own file, so its HTML (the <details> blocks) is rendered as written.
   return (
-    <main ref={mainRef} className="readme">
+    <Page ref={mainRef} className="readme">
       {sections.map(({ heading, html }) =>
         heading === null ? (
           <div key="" dangerouslySetInnerHTML={{ __html: html }} />
@@ -121,7 +121,7 @@ function ReadmePage() {
           </details>
         ),
       )}
-    </main>
+    </Page>
   )
 }
 
