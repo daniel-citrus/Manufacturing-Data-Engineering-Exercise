@@ -12,7 +12,7 @@ function CleanedDataPage() {
       <PageHeader title="Cleaned data" subtitle="The same datasets after cleaning.">
         {!raw.ready && (
           <span id="clean-hint" className="self-center text-sm text-muted">
-            Pull raw data first
+            {raw.busy ? 'Raw data is loading' : 'Pull raw data first'}
           </span>
         )}
         <Button
