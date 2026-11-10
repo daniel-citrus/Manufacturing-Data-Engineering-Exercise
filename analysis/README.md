@@ -53,7 +53,7 @@ The notebooks are saved with their output, so they can also be read on GitHub wi
 | R101 | 250 | 50.5 | 297.0 | 600 | 49.5% |
 | R102 | 280 | 55.0 | 305.5 | 420 | 72.7% |
 | R103 | 290 | 56.4 | 308.4 | 420 | 73.4% |
-| R104 | | | | 540 | no end time, so no metrics |
+| R104 | 150 (by 15:40) | | | 540 | no end time, so no attainment |
 
 **Lowest-performing completed run: R101, at 49.5% of target.** This depends on treating the C010 drop as a glitch.
 
@@ -71,7 +71,7 @@ Decisions that change the result (full detail in `03`):
 | C001 and C014, taken 1 minute before R100 and R102 start, are left out | Use them as starting counts: R100 reaches 94% and R102 96% |
 | Only D002's 4 minutes inside R101 count | Leave D002 out: R101 downtime is 5.5 minutes instead of 9.5 |
 | D003 and D004's shared 1.5 minutes count once | Drop D004: those stops count 4.0 minutes instead of 5.5 |
-| R104 has no end time, so it gets no metrics | Use 15:40, the last reading, as its end: 150 cases, 83% |
+| R104 has no end time, so only its cases are counted (C012 to C013, 150 by 15:40), with no throughput or attainment | Use 15:40, the last reading, as its end: 83% with D010 left out, 119% with D010 counted to 15:40 |
 
 ## Data-quality findings
 
@@ -87,7 +87,7 @@ Each run's `data_quality_notes` in the CSV lists what affected its numbers.
 - **Which run performed worst:** R101 if the C010 drop is a glitch, R102 if it's a reset, and R103 if it's a reset and C001/C014 are also used.
 - **R101's cases:** production after 14:40 isn't measured.
 - **R100's and R102's cases:** counting starts 10 and 15 minutes late, so their attainment is understated.
-- **R104:** it has no end time, and the operator stop (D010) doesn't prove the run ended.
+- **R104's throughput and attainment:** it has no end time, and neither does the operator stop D010 at 15:34. Ending it at the last reading (15:40) gives 83% with D010 left out and 119% with D010 counted.
 - **What caused the downtime:** half the reasons are `Unknown`, and the material reason isn't recorded consistently.
 - **Why R103 fell short:** it logged only 3.6 minutes of downtime, so slow running and unrecorded stops can't be told apart.
 - **Comparing machines or products:** each machine made different products, and there are only 5 runs.

@@ -43,7 +43,7 @@ Reloading the browser clears the loaded data.
 - A reading belongs to a run on the same machine if it falls within the run, ends included. Readings just before a run starts (C001, C014) are left out.
 - A stop belongs to a run if it overlaps it. Only the overlap counts (D002), and time shared by two stops counts once (D003 and D004).
 - Times are converted to UTC, trusting the offsets in the data. Rates in cases/minute are multiplied by 60.
-- R104 has no end time, so it gets no metrics.
+- R104 has no end time, but C012 and C013 are good readings (inside the run, and the count goes up), so its cases are counted: 150 by 15:40. Throughput and attainment need an end time, so R104 has neither and isn't ranked, and D010 adds no downtime.
 
 ## Data-quality findings
 
@@ -56,7 +56,7 @@ Reloading the browser clears the loaded data.
 
 - **The lowest run:** R101 if the C010 drop is a glitch, R102 if it's a counter reset, and R103 if C001 and C014 are also used.
 - **R100, R101 and R102's attainment:** counting starts late or stops early while the whole run still counts, so it's understated.
-- **R104:** it has no end time, and the operator stop (D010) doesn't prove it ended.
+- **R104's throughput and attainment:** it has no end time, and neither does the operator stop D010 at 15:34. Ending it at the last reading (15:40) gives 83% with D010 left out and 119% with D010 counted.
 - **Downtime causes:** half the reasons are `Unknown`, and the material reason isn't recorded consistently.
 - **Why R103 fell short:** it logged only 3.6 minutes of downtime, so slow running and unrecorded stops can't be told apart.
 - **Comparing machines or products:** each machine made different products, and there are only 5 runs.

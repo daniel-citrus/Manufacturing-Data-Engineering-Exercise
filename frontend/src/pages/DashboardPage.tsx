@@ -96,7 +96,7 @@ const COLUMNS: { label: string; how: string; num?: boolean }[] = [
   { label: 'Window', how: 'Run start to run end, in UTC.' },
   {
     label: 'Readings used',
-    how: "Counter readings on the run's machine taken from its start to its end, both included. Left out: counts that aren't numbers, duplicates, and counts lower than the run's last good count.",
+    how: "Counter readings on the run's machine taken from its start to its end, both included, or from its start on when it has no end. Left out: counts that aren't numbers, duplicates, and counts lower than the run's last good count.",
   },
   {
     label: 'Stops counted (min)',
@@ -104,7 +104,7 @@ const COLUMNS: { label: string; how: string; num?: boolean }[] = [
   },
   {
     label: 'Cases',
-    how: 'Last reading used − first reading used. — when the run has no end time or no readings used.',
+    how: 'Last reading used − first reading used, so for a run with no end time, the cases up to its last reading. — when no readings are used.',
     num: true,
   },
   { label: 'Elapsed (min)', how: 'Run end − run start.', num: true },
@@ -269,7 +269,7 @@ function DashboardPage() {
             label="Cases produced"
             value={
               analysis
-                ? formatCount(completed.reduce((sum, run) => sum + run.cases_produced!, 0))
+                ? formatCount(runs.reduce((sum, run) => sum + (run.cases_produced ?? 0), 0))
                 : '—'
             }
           />

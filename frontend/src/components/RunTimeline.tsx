@@ -159,15 +159,17 @@ export function RunTimeline({
           attainment === null
             ? run.run_end
               ? 'No metrics'
-              : 'No end time, so no metrics'
+              : 'No end time, so no attainment'
             : `${attainment.toFixed(1)}% of target`,
         lines: [
           `${run.run_id} · ${formatTime(run.run_start)}–${run.run_end ? formatTime(run.run_end) : 'no end'} · ${run.product_code}`,
           ...(run.cases_produced === null
             ? []
-            : [
-                `${formatCount(run.cases_produced)} cases · ${formatNumber(run.operating_throughput_cph)} of ${run.target_rate_cases_per_hour} cases/h`,
-              ]),
+            : run.operating_throughput_cph === null
+              ? [`${formatCount(run.cases_produced)} cases`]
+              : [
+                  `${formatCount(run.cases_produced)} cases · ${formatNumber(run.operating_throughput_cph)} of ${run.target_rate_cases_per_hour} cases/h`,
+                ]),
         ],
         shape: { kind: 'rect', x: x0, y: TOP, width: x1 - x0, height: PLOT },
       }

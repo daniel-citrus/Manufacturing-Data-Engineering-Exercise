@@ -27,7 +27,7 @@ type CleanEvent = {
   reason: string
 }
 
-// A run with its metrics, which are null when it has no end time or no usable readings
+// A run with its metrics, which are null when it has no usable readings. A run with no end time has only its cases.
 export type Run = {
   run_id: string
   equipment_id: string
@@ -104,7 +104,6 @@ function matchReadings(runs: CleanRun[], readings: CleanReading[]): MatchedReadi
     let whyNot: string | null = null
     if (!machines.has(reading.equipment_id)) whyNot = 'machine has no production runs'
     else if (!run) whyNot = 'outside every run'
-    else if (run.end_time === null) whyNot = 'run has no end time'
     else if (!Number.isInteger(reading.count)) whyNot = "count isn't a number"
     else if (seen.has(key)) whyNot = 'duplicate'
     else if ((reading.count as number) < (lastGood.get(run.run_id) ?? -Infinity))
@@ -141,7 +140,8 @@ function matchEvents(runs: CleanRun[], events: CleanEvent[]): MatchedEvent[] {
   })
 }
 
-// The same metrics as notebook 04. A run without an end time or usable readings has none.
+// The same metrics as notebook 04. A run without usable readings has none, and one without an end time
+// has only its cases, since there's no operating time without an end.
 function runMetrics(run: CleanRun, readings: MatchedReading[], events: MatchedEvent[]): Run {
   const row: Run = {
     run_id: run.run_id,
@@ -158,8 +158,9 @@ function runMetrics(run: CleanRun, readings: MatchedReading[], events: MatchedEv
     target_attainment_percent: null,
   }
   const used = readings.filter((r) => r.run_id === run.run_id && r.used)
-  if (run.end_time === null || used.length === 0) return row
+  if (used.length === 0) return row
   const cases = (used.at(-1)!.count as number) - (used[0].count as number)
+  if (run.end_time === null) return { ...row, cases_produced: cases }
   const elapsed = (ms(run.end_time) - ms(run.start_time)) / MINUTE
   const downtime = events
     .filter((e) => e.run_id === run.run_id && e.used)
